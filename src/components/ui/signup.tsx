@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -8,9 +7,10 @@ import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 import * as CheckboxPrimitive from "@radix-ui/react-checkbox";
 import * as LabelPrimitive from "@radix-ui/react-label";
-import * as SeparatorPrimitive from "@radix-ui/react-separator";
 import { CheckIcon } from "lucide-react";
 import { JSX, SVGProps } from "react";
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -190,6 +190,9 @@ export default function ModernSignup({ onSwitchToLogin }: ModernSignupProps) {
     confirmPassword: '',
     newsletter: false
   });
+  const [loading, setLoading] = React.useState(false);
+  const { signUp } = useAuth();
+  const { toast } = useToast();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
@@ -199,14 +202,55 @@ export default function ModernSignup({ onSwitchToLogin }: ModernSignupProps) {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (formData.password !== formData.confirmPassword) {
-      alert('As senhas não coincidem!');
+      toast({
+        title: "Erro no cadastro",
+        description: "As senhas não coincidem!",
+        variant: "destructive",
+      });
       return;
     }
-    console.log('Cadastro moderno:', formData);
-    // Aqui você implementaria a lógica de registro
+
+    if (formData.password.length < 6) {
+      toast({
+        title: "Erro no cadastro",
+        description: "A senha deve ter pelo menos 6 caracteres",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const { error } = await signUp(formData.email, formData.password, formData.name);
+
+      if (error) {
+        toast({
+          title: "Erro no cadastro",
+          description: error.message === 'User already registered' 
+            ? "Este email já está cadastrado" 
+            : error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Cadastro realizado com sucesso!",
+          description: "Verifique seu email para confirmar sua conta",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Erro no cadastro",
+        description: "Ocorreu um erro inesperado. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -245,6 +289,7 @@ export default function ModernSignup({ onSwitchToLogin }: ModernSignupProps) {
                   onChange={handleInputChange}
                   className="mt-2"
                   required
+                  disabled={loading}
                 />
               </div>
 
@@ -265,6 +310,7 @@ export default function ModernSignup({ onSwitchToLogin }: ModernSignupProps) {
                   onChange={handleInputChange}
                   className="mt-2"
                   required
+                  disabled={loading}
                 />
               </div>
 
@@ -286,6 +332,7 @@ export default function ModernSignup({ onSwitchToLogin }: ModernSignupProps) {
                   className="mt-2"
                   required
                   minLength={6}
+                  disabled={loading}
                 />
               </div>
 
@@ -306,6 +353,7 @@ export default function ModernSignup({ onSwitchToLogin }: ModernSignupProps) {
                   onChange={handleInputChange}
                   className="mt-2"
                   required
+                  disabled={loading}
                 />
               </div>
 
@@ -319,6 +367,7 @@ export default function ModernSignup({ onSwitchToLogin }: ModernSignupProps) {
                       setFormData(prev => ({ ...prev, newsletter: checked as boolean }))
                     }
                     className="size-4"
+                    disabled={loading}
                   />
                 </div>
                 <ModernLabel
@@ -329,8 +378,12 @@ export default function ModernSignup({ onSwitchToLogin }: ModernSignupProps) {
                 </ModernLabel>
               </div>
 
-              <ModernButton type="submit" className="mt-4 w-full py-2 font-medium gradient-bg">
-                Criar conta
+              <ModernButton 
+                type="submit" 
+                className="mt-4 w-full py-2 font-medium gradient-bg"
+                disabled={loading}
+              >
+                {loading ? 'Criando conta...' : 'Criar conta'}
               </ModernButton>
 
               <p className="text-center text-xs text-muted-foreground">
@@ -358,6 +411,7 @@ export default function ModernSignup({ onSwitchToLogin }: ModernSignupProps) {
           <button
             onClick={onSwitchToLogin}
             className="font-medium text-primary hover:text-primary/90 underline"
+            disabled={loading}
           >
             Fazer login
           </button>

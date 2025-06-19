@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -9,6 +8,8 @@ import { cva, type VariantProps } from "class-variance-authority";
 import * as LabelPrimitive from "@radix-ui/react-label";
 import { Eye, EyeOff } from "lucide-react";
 import { JSX, SVGProps } from "react";
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -163,6 +164,9 @@ export default function ModernLogin({ onSwitchToRegister }: ModernLoginProps) {
     password: ''
   });
   const [showPassword, setShowPassword] = React.useState(false);
+  const [loading, setLoading] = React.useState(false);
+  const { signIn } = useAuth();
+  const { toast } = useToast();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -172,10 +176,36 @@ export default function ModernLogin({ onSwitchToRegister }: ModernLoginProps) {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Login moderno:', formData);
-    // Aqui você implementaria a lógica de autenticação
+    setLoading(true);
+
+    try {
+      const { error } = await signIn(formData.email, formData.password);
+
+      if (error) {
+        toast({
+          title: "Erro no login",
+          description: error.message === 'Invalid login credentials' 
+            ? "Email ou senha incorretos" 
+            : error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Login realizado com sucesso!",
+          description: "Bem-vindo ao PlayFit",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Erro no login",
+        description: "Ocorreu um erro inesperado. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -214,6 +244,7 @@ export default function ModernLogin({ onSwitchToRegister }: ModernLoginProps) {
                   onChange={handleInputChange}
                   className="mt-2"
                   required
+                  disabled={loading}
                 />
               </div>
 
@@ -235,11 +266,13 @@ export default function ModernLogin({ onSwitchToRegister }: ModernLoginProps) {
                     onChange={handleInputChange}
                     className="pr-10"
                     required
+                    disabled={loading}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    disabled={loading}
                   >
                     {showPassword ? (
                       <EyeOff className="h-4 w-4" />
@@ -261,8 +294,12 @@ export default function ModernLogin({ onSwitchToRegister }: ModernLoginProps) {
                 </div>
               </div>
 
-              <ModernButton type="submit" className="mt-4 w-full py-2 font-medium gradient-bg">
-                Entrar
+              <ModernButton 
+                type="submit" 
+                className="mt-4 w-full py-2 font-medium gradient-bg"
+                disabled={loading}
+              >
+                {loading ? 'Entrando...' : 'Entrar'}
               </ModernButton>
             </form>
           </ModernCardContent>
@@ -273,6 +310,7 @@ export default function ModernLogin({ onSwitchToRegister }: ModernLoginProps) {
           <button
             onClick={onSwitchToRegister}
             className="font-medium text-primary hover:text-primary/90 underline"
+            disabled={loading}
           >
             Criar conta
           </button>
