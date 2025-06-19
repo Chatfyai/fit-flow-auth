@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
+import CreateWorkout from "./pages/CreateWorkout";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,6 +32,8 @@ const AppContent = () => {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={user ? <Dashboard /> : <Index />} />
+        <Route path="/dashboard" element={user ? <Dashboard /> : <Index />} />
+        <Route path="/create-workout" element={user ? <CreateWorkout /> : <Index />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>

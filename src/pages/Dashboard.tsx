@@ -1,10 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Activity, Calendar, TrendingUp, User, LogOut } from 'lucide-react';
+import { Activity, Calendar, TrendingUp, LogOut } from 'lucide-react';
 
 interface WorkoutSession {
   id: string;
@@ -14,6 +15,7 @@ interface WorkoutSession {
 }
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const [workoutSessions, setWorkoutSessions] = useState<WorkoutSession[]>([]);
   const [loading, setLoading] = useState(true);
@@ -92,34 +94,8 @@ const Dashboard = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Treinos Esta Semana</CardTitle>
-              <Activity className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{thisWeekSessions.length}</div>
-              <p className="text-xs text-muted-foreground">
-                Meta: {weeklyGoal} treinos
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total de Treinos</CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{totalWorkouts}</div>
-              <p className="text-xs text-muted-foreground">
-                Desde o cadastro
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
+        <div className="flex justify-center mb-8">
+          <Card className="w-full max-w-md">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Progresso Semanal</CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
@@ -135,29 +111,6 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         </div>
-
-        {/* Welcome Section */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <User className="h-5 w-5 mr-2" />
-              Bem-vindo ao PlayFit!
-            </CardTitle>
-            <CardDescription>
-              Sua jornada fitness começa aqui. Use este painel para acompanhar seus treinos e progresso.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Button className="gradient-bg text-primary-foreground font-semibold">
-                Criar Novo Treino
-              </Button>
-              <Button variant="outline">
-                Registrar Treino
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Recent Activity */}
         <Card>
@@ -199,6 +152,21 @@ const Dashboard = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Action Buttons */}
+        <div className="mt-8 pt-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Button 
+              className="gradient-bg text-primary-foreground font-semibold"
+              onClick={() => navigate('/create-workout')}
+            >
+              Criar Novo Treino
+            </Button>
+            <Button variant="outline">
+              Meus Treinos
+            </Button>
+          </div>
+        </div>
       </main>
     </div>
   );
