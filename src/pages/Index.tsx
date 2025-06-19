@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
-import Login from '@/components/Login';
-import Register from '@/components/Register';
+import ModernLogin from '@/components/ui/modern-login';
+import ModernSignup from '@/components/ui/signup';
 
 const Index = () => {
   const [isLoginView, setIsLoginView] = useState(true);
@@ -9,9 +9,9 @@ const Index = () => {
   return (
     <>
       {isLoginView ? (
-        <Login onSwitchToRegister={() => setIsLoginView(false)} />
+        <ModernLogin onSwitchToRegister={() => setIsLoginView(false)} />
       ) : (
-        <Register onSwitchToLogin={() => setIsLoginView(true)} />
+        <ModernSignup onSwitchToLogin={() => setIsLoginView(true)} />
       )}
     </>
   );
