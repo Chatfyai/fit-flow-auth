@@ -1,13 +1,19 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import { useState } from 'react';
+import Login from '@/components/Login';
+import Register from '@/components/Register';
 
 const Index = () => {
+  const [isLoginView, setIsLoginView] = useState(true);
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
-    </div>
+    <>
+      {isLoginView ? (
+        <Login onSwitchToRegister={() => setIsLoginView(false)} />
+      ) : (
+        <Register onSwitchToLogin={() => setIsLoginView(true)} />
+      )}
+    </>
   );
 };
 
