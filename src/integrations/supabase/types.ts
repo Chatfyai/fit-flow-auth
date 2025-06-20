@@ -112,7 +112,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      validate_exercise_structure: {
+        Args: { exercise_data: Json }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

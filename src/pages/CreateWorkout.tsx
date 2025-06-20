@@ -16,6 +16,7 @@ interface Exercise {
   name: string;
   sets: string;
   variation?: string;
+  rest_time?: number;
 }
 
 interface WorkoutDay {
@@ -83,12 +84,13 @@ const CreateWorkout = () => {
       id: Date.now().toString(),
       name: '',
       sets: '',
-      variation: ''
+      variation: '',
+      rest_time: 60
     });
     setWorkoutDays(newWorkoutDays);
   };
 
-  const updateExercise = (dayIndex: number, exerciseIndex: number, field: keyof Exercise, value: string) => {
+  const updateExercise = (dayIndex: number, exerciseIndex: number, field: keyof Exercise, value: string | number) => {
     const newWorkoutDays = [...workoutDays];
     newWorkoutDays[dayIndex].exercises[exerciseIndex] = {
       ...newWorkoutDays[dayIndex].exercises[exerciseIndex],
@@ -163,8 +165,8 @@ const CreateWorkout = () => {
         .insert({
           user_id: user?.id,
           name: workoutName,
-          workout_days: workoutDays as any, // Cast to JSON for Supabase
-          weekly_schedule: weeklySchedule as any, // Cast to JSON for Supabase
+          workout_days: workoutDays as any,
+          weekly_schedule: weeklySchedule as any,
           expiration_date: expirationDate,
           created_at: new Date().toISOString()
         })
@@ -239,14 +241,8 @@ const CreateWorkout = () => {
 
         {/* Treinos A, B, C, D, E */}
         <Card className="mb-6">
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader>
             <CardTitle>Divisão de Treinos</CardTitle>
-            {workoutDays.length < availableLetters.length && (
-              <Button onClick={addWorkoutDay} size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                Adicionar Treino
-              </Button>
-            )}
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
@@ -267,7 +263,7 @@ const CreateWorkout = () => {
                   <CardContent>
                     <div className="space-y-4">
                       {day.exercises.map((exercise, exerciseIndex) => (
-                        <div key={exercise.id} className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 border rounded-lg">
+                        <div key={exercise.id} className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4 border rounded-lg">
                           <div>
                             <Label>Nome do Exercício</Label>
                             <Input
@@ -287,9 +283,18 @@ const CreateWorkout = () => {
                           <div>
                             <Label>Variação (Opcional)</Label>
                             <Input
-                              placeholder="Ex: Inclinado, Pegada fechada"
+                              placeholder="Ex: Inclinado"
                               value={exercise.variation || ''}
                               onChange={(e) => updateExercise(dayIndex, exerciseIndex, 'variation', e.target.value)}
+                            />
+                          </div>
+                          <div>
+                            <Label>Descanso (segundos)</Label>
+                            <Input
+                              type="number"
+                              placeholder="60"
+                              value={exercise.rest_time || ''}
+                              onChange={(e) => updateExercise(dayIndex, exerciseIndex, 'rest_time', parseInt(e.target.value) || 0)}
                             />
                           </div>
                           <div className="flex items-end">
@@ -316,6 +321,14 @@ const CreateWorkout = () => {
                   </CardContent>
                 </Card>
               ))}
+              {workoutDays.length < availableLetters.length && (
+                <div className="text-center pt-4">
+                  <Button onClick={addWorkoutDay} size="sm">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Adicionar Treino
+                  </Button>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

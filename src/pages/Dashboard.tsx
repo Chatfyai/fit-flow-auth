@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Activity, Calendar, TrendingUp, LogOut, Dumbbell } from 'lucide-react';
+import { Activity, Calendar, TrendingUp, LogOut, Dumbbell, Clock } from 'lucide-react';
 
 interface WorkoutSession {
   id: string;
@@ -19,6 +19,7 @@ interface Exercise {
   name: string;
   sets: string;
   variation?: string;
+  rest_time?: number;
 }
 
 interface WorkoutDay {
@@ -45,6 +46,7 @@ const Dashboard = () => {
   const { user, signOut } = useAuth();
   const [workoutSessions, setWorkoutSessions] = useState<WorkoutSession[]>([]);
   const [workouts, setWorkouts] = useState<Workout[]>([]);
+  const [todaysWorkout, setTodaysWorkout] = useState<WorkoutDay[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -86,12 +88,48 @@ const Dashboard = () => {
           weekly_schedule: (workout.weekly_schedule as any) || {}
         }));
         setWorkouts(typedWorkouts);
+        
+        // Calculate today's workout
+        calculateTodaysWorkout(typedWorkouts);
       }
     } catch (error) {
       console.error('Error:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const calculateTodaysWorkout = (workouts: Workout[]) => {
+    const today = new Date();
+    const dayNames = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
+    const todayName = dayNames[today.getDay()];
+
+    // Find active workouts (not expired)
+    const activeWorkouts = workouts.filter(workout => {
+      if (!workout.expiration_date) return true;
+      return new Date(workout.expiration_date) >= today;
+    });
+
+    if (activeWorkouts.length === 0) {
+      setTodaysWorkout([]);
+      return;
+    }
+
+    // Get the most recent active workout
+    const currentWorkout = activeWorkouts[0];
+    const todayLetters = currentWorkout.weekly_schedule[todayName] || [];
+    
+    if (todayLetters.length === 0) {
+      setTodaysWorkout([]);
+      return;
+    }
+
+    // Find the workout days for today
+    const todayWorkoutDays = todayLetters.map(letter => 
+      currentWorkout.workout_days.find(day => day.letter === letter)
+    ).filter(Boolean) as WorkoutDay[];
+
+    setTodaysWorkout(todayWorkoutDays);
   };
 
   const handleSignOut = async () => {
@@ -185,6 +223,68 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Today's Workout */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Calendar className="h-5 w-5 mr-2" />
+              Treino de Hoje
+            </CardTitle>
+            <CardDescription>
+              {new Date().toLocaleDateString('pt-BR', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+              })}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="text-center py-4">
+                <p className="text-muted-foreground">Carregando...</p>
+              </div>
+            ) : todaysWorkout.length > 0 ? (
+              <div className="space-y-6">
+                {todaysWorkout.map((workoutDay) => (
+                  <div key={workoutDay.letter} className="border rounded-lg p-4">
+                    <h3 className="font-semibold text-lg mb-4">Treino {workoutDay.letter}</h3>
+                    <div className="space-y-3">
+                      {workoutDay.exercises.map((exercise, index) => (
+                        <div key={exercise.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                          <div className="flex-1">
+                            <p className="font-medium">{exercise.name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {exercise.sets}
+                              {exercise.variation && ` • ${exercise.variation}`}
+                            </p>
+                          </div>
+                          {exercise.rest_time && (
+                            <div className="text-right">
+                              <div className="flex items-center text-sm text-muted-foreground">
+                                <Clock className="h-4 w-4 mr-1" />
+                                {exercise.rest_time}s
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">Nenhum treino programado para hoje</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Aproveite para descansar ou criar um novo plano!
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Recent Workouts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
