@@ -1,15 +1,14 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Trash2, Plus, ArrowLeft, Calendar } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
 interface Exercise {
   id: string;
@@ -31,6 +30,7 @@ interface WeeklySchedule {
 const CreateWorkout = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { toast } = useToast();
   const [workoutName, setWorkoutName] = useState('');
   const [workoutDays, setWorkoutDays] = useState<WorkoutDay[]>([
     { letter: 'A', name: 'Treino A', exercises: [] }
@@ -111,24 +111,52 @@ const CreateWorkout = () => {
 
   const handleCompleteWorkout = async () => {
     if (!workoutName.trim()) {
-      alert('Por favor, insira o nome do treino');
+      toast({
+        title: "Erro",
+        description: "Por favor, insira o nome do treino",
+        variant: "destructive"
+      });
       return;
     }
 
     if (workoutDays.some(day => day.exercises.length === 0)) {
-      alert('Todos os treinos devem ter pelo menos um exercício');
+      toast({
+        title: "Erro",
+        description: "Todos os treinos devem ter pelo menos um exercício",
+        variant: "destructive"
+      });
       return;
     }
 
     if (!expirationDate) {
-      alert('Por favor, selecione a data de vencimento');
+      toast({
+        title: "Erro",
+        description: "Por favor, selecione a data de vencimento",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (workoutDays.some(day => day.exercises.some(exercise => !exercise.name.trim() || !exercise.sets.trim()))) {
+      toast({
+        title: "Erro",
+        description: "Todos os exercícios devem ter nome e séries preenchidos",
+        variant: "destructive"
+      });
       return;
     }
 
     setLoading(true);
 
     try {
-      // Salvar no Supabase
+      console.log('Saving workout with data:', {
+        user_id: user?.id,
+        name: workoutName,
+        workout_days: workoutDays,
+        weekly_schedule: weeklySchedule,
+        expiration_date: expirationDate
+      });
+
       const { data, error } = await supabase
         .from('workouts')
         .insert({
@@ -138,17 +166,29 @@ const CreateWorkout = () => {
           weekly_schedule: weeklySchedule,
           expiration_date: expirationDate,
           created_at: new Date().toISOString()
-        });
+        })
+        .select();
 
       if (error) {
+        console.error('Supabase error:', error);
         throw error;
       }
 
-      alert('Treino criado com sucesso!');
+      console.log('Workout saved successfully:', data);
+
+      toast({
+        title: "Sucesso!",
+        description: "Treino criado com sucesso!",
+      });
+
       navigate('/dashboard');
     } catch (error) {
       console.error('Erro ao criar treino:', error);
-      alert('Erro ao criar treino. Tente novamente.');
+      toast({
+        title: "Erro",
+        description: "Erro ao criar treino. Tente novamente.",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }

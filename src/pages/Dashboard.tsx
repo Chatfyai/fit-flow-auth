@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Activity, Calendar, TrendingUp, LogOut } from 'lucide-react';
+import { Activity, Calendar, TrendingUp, LogOut, Dumbbell } from 'lucide-react';
 
 interface WorkoutSession {
   id: string;
@@ -14,30 +14,55 @@ interface WorkoutSession {
   workout_id: string;
 }
 
+interface Workout {
+  id: string;
+  name: string;
+  created_at: string;
+  expiration_date: string;
+  workout_days: any[];
+  weekly_schedule: any;
+}
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const [workoutSessions, setWorkoutSessions] = useState<WorkoutSession[]>([]);
+  const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (user) {
-      fetchWorkoutSessions();
+      fetchData();
     }
   }, [user]);
 
-  const fetchWorkoutSessions = async () => {
+  const fetchData = async () => {
     try {
-      const { data, error } = await supabase
+      // Fetch workout sessions
+      const { data: sessionsData, error: sessionsError } = await supabase
         .from('workout_sessions')
         .select('*')
         .order('date', { ascending: false })
         .limit(7);
 
-      if (error) {
-        console.error('Error fetching workout sessions:', error);
+      if (sessionsError) {
+        console.error('Error fetching workout sessions:', sessionsError);
       } else {
-        setWorkoutSessions(data || []);
+        setWorkoutSessions(sessionsData || []);
+      }
+
+      // Fetch workouts
+      const { data: workoutsData, error: workoutsError } = await supabase
+        .from('workouts')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (workoutsError) {
+        console.error('Error fetching workouts:', workoutsError);
+      } else {
+        console.log('Fetched workouts:', workoutsData);
+        setWorkouts(workoutsData || []);
       }
     } catch (error) {
       console.error('Error:', error);
@@ -94,8 +119,8 @@ const Dashboard = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="flex justify-center mb-8">
-          <Card className="w-full max-w-md">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Progresso Semanal</CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
@@ -110,48 +135,127 @@ const Dashboard = () => {
               </div>
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Treinos Esta Semana</CardTitle>
+              <Activity className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{thisWeekSessions.length}</div>
+              <p className="text-xs text-muted-foreground">
+                de {weeklyGoal} treinos planejados
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Planos Criados</CardTitle>
+              <Dumbbell className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{workouts.length}</div>
+              <p className="text-xs text-muted-foreground">
+                planos de treino
+              </p>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Recent Activity */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Atividade Recente</CardTitle>
-            <CardDescription>
-              Seus últimos treinos registrados
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="text-center py-4">
-                <p className="text-muted-foreground">Carregando...</p>
-              </div>
-            ) : workoutSessions.length > 0 ? (
-              <div className="space-y-3">
-                {workoutSessions.slice(0, 5).map((session) => (
-                  <div key={session.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <p className="font-medium">Treino realizado</p>
-                      <p className="text-sm text-muted-foreground">
-                        {new Date(session.date).toLocaleDateString('pt-BR')}
-                      </p>
+        {/* Recent Workouts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Recent Activity */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Atividade Recente</CardTitle>
+              <CardDescription>
+                Seus últimos treinos registrados
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="text-center py-4">
+                  <p className="text-muted-foreground">Carregando...</p>
+                </div>
+              ) : workoutSessions.length > 0 ? (
+                <div className="space-y-3">
+                  {workoutSessions.slice(0, 5).map((session) => (
+                    <div key={session.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <p className="font-medium">Treino realizado</p>
+                        <p className="text-sm text-muted-foreground">
+                          {new Date(session.date).toLocaleDateString('pt-BR')}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-medium">{session.duration} min</p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm font-medium">{session.duration} min</p>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">Nenhum treino registrado ainda</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Comece registrando seu primeiro treino!
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* My Workouts */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Meus Planos de Treino</CardTitle>
+              <CardDescription>
+                Planos que você criou
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="text-center py-4">
+                  <p className="text-muted-foreground">Carregando...</p>
+                </div>
+              ) : workouts.length > 0 ? (
+                <div className="space-y-3">
+                  {workouts.map((workout) => (
+                    <div key={workout.id} className="p-3 bg-gray-50 rounded-lg">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-medium">{workout.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {workout.workout_days?.length || 0} treinos
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Criado em {new Date(workout.created_at).toLocaleDateString('pt-BR')}
+                          </p>
+                        </div>
+                        {workout.expiration_date && (
+                          <div className="text-right">
+                            <p className="text-xs text-muted-foreground">
+                              Expira em {new Date(workout.expiration_date).toLocaleDateString('pt-BR')}
+                            </p>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">Nenhum treino registrado ainda</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Comece registrando seu primeiro treino!
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <Dumbbell className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">Nenhum plano criado ainda</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Crie seu primeiro plano de treino!
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Action Buttons */}
         <div className="mt-8 pt-6">
@@ -163,7 +267,7 @@ const Dashboard = () => {
               Criar Novo Treino
             </Button>
             <Button variant="outline">
-              Meus Treinos
+              Registrar Treino
             </Button>
           </div>
         </div>

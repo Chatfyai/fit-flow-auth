@@ -73,28 +73,37 @@ export type Database = {
           created_at: string | null
           description: string | null
           exercises: Json | null
+          expiration_date: string | null
           id: string
           name: string
           updated_at: string | null
           user_id: string
+          weekly_schedule: Json | null
+          workout_days: Json | null
         }
         Insert: {
           created_at?: string | null
           description?: string | null
           exercises?: Json | null
+          expiration_date?: string | null
           id?: string
           name: string
           updated_at?: string | null
           user_id: string
+          weekly_schedule?: Json | null
+          workout_days?: Json | null
         }
         Update: {
           created_at?: string | null
           description?: string | null
           exercises?: Json | null
+          expiration_date?: string | null
           id?: string
           name?: string
           updated_at?: string | null
           user_id?: string
+          weekly_schedule?: Json | null
+          workout_days?: Json | null
         }
         Relationships: []
       }
