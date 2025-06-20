@@ -14,13 +14,30 @@ interface WorkoutSession {
   workout_id: string;
 }
 
+interface Exercise {
+  id: string;
+  name: string;
+  sets: string;
+  variation?: string;
+}
+
+interface WorkoutDay {
+  letter: string;
+  name: string;
+  exercises: Exercise[];
+}
+
+interface WeeklySchedule {
+  [key: string]: string[];
+}
+
 interface Workout {
   id: string;
   name: string;
   created_at: string;
   expiration_date: string;
-  workout_days: any[];
-  weekly_schedule: any;
+  workout_days: WorkoutDay[];
+  weekly_schedule: WeeklySchedule;
 }
 
 const Dashboard = () => {
@@ -62,7 +79,13 @@ const Dashboard = () => {
         console.error('Error fetching workouts:', workoutsError);
       } else {
         console.log('Fetched workouts:', workoutsData);
-        setWorkouts(workoutsData || []);
+        // Convert the Json types to our frontend types
+        const typedWorkouts: Workout[] = (workoutsData || []).map(workout => ({
+          ...workout,
+          workout_days: (workout.workout_days as any) || [],
+          weekly_schedule: (workout.weekly_schedule as any) || {}
+        }));
+        setWorkouts(typedWorkouts);
       }
     } catch (error) {
       console.error('Error:', error);

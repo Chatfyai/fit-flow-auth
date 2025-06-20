@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -162,8 +163,8 @@ const CreateWorkout = () => {
         .insert({
           user_id: user?.id,
           name: workoutName,
-          workout_days: workoutDays,
-          weekly_schedule: weeklySchedule,
+          workout_days: workoutDays as any, // Cast to JSON for Supabase
+          weekly_schedule: weeklySchedule as any, // Cast to JSON for Supabase
           expiration_date: expirationDate,
           created_at: new Date().toISOString()
         })
