@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -293,13 +294,13 @@ const CreateWorkout = () => {
                   <Label>{label}</Label>
                   <Select
                     value={weeklySchedule[key].join(',')}
-                    onValueChange={(value) => updateWeeklySchedule(key, value ? value.split(',') : [])}
+                    onValueChange={(value) => updateWeeklySchedule(key, value === 'rest' ? [] : value.split(','))}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione os treinos" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Descanso</SelectItem>
+                      <SelectItem value="rest">Descanso</SelectItem>
                       {workoutDays.map(day => (
                         <SelectItem key={day.letter} value={day.letter}>
                           Treino {day.letter}
@@ -353,4 +354,4 @@ const CreateWorkout = () => {
   );
 };
 
-export default CreateWorkout; 
+export default CreateWorkout;
