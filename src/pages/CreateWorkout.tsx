@@ -1,6 +1,5 @@
-
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -31,8 +30,11 @@ interface WeeklySchedule {
 
 const CreateWorkout = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
+  const workoutToEdit = location.state?.workout;
+
   const [workoutName, setWorkoutName] = useState('');
   const [workoutDays, setWorkoutDays] = useState<WorkoutDay[]>([
     { letter: 'A', name: 'Treino A', exercises: [] }
@@ -48,6 +50,17 @@ const CreateWorkout = () => {
   });
   const [expirationDate, setExpirationDate] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (workoutToEdit) {
+      setWorkoutName(workoutToEdit.name || '');
+      setWorkoutDays(workoutToEdit.workout_days || [{ letter: 'A', name: 'Treino A', exercises: [] }]);
+      setWeeklySchedule(workoutToEdit.weekly_schedule || {
+        segunda: [], terca: [], quarta: [], quinta: [], sexta: [], sabado: [], domingo: []
+      });
+      setExpirationDate(workoutToEdit.expiration_date || '');
+    }
+  }, [workoutToEdit]);
 
   const availableLetters = ['A', 'B', 'C', 'D', 'E', 'F'];
   const weekDays = [
@@ -211,7 +224,7 @@ const CreateWorkout = () => {
               <div className="w-8 h-8 gradient-bg rounded-full flex items-center justify-center mr-3">
                 <span className="text-sm font-bold text-primary-foreground">💪</span>
               </div>
-              <h1 className="text-xl font-bold text-gray-900">Criar Novo Treino</h1>
+              <h1 className="text-xl font-bold text-gray-900">{workoutToEdit ? 'Editar Treino' : 'Criar Novo Treino'}</h1>
             </div>
           </div>
         </div>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -225,7 +224,7 @@ const Dashboard = () => {
         </div>
 
         {/* Today's Workout */}
-        <Card className="mb-8">
+        <Card className="mb-8 cursor-pointer" onClick={() => navigate('/treino-do-dia', { state: { workoutDays: todaysWorkout, date: new Date().toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) } })}>
           <CardHeader>
             <CardTitle className="flex items-center">
               <Calendar className="h-5 w-5 mr-2" />
@@ -356,13 +355,21 @@ const Dashboard = () => {
                             Criado em {new Date(workout.created_at).toLocaleDateString('pt-BR')}
                           </p>
                         </div>
-                        {workout.expiration_date && (
-                          <div className="text-right">
+                        <div className="flex flex-col items-end gap-2">
+                          {workout.expiration_date && (
                             <p className="text-xs text-muted-foreground">
                               Expira em {new Date(workout.expiration_date).toLocaleDateString('pt-BR')}
                             </p>
-                          </div>
-                        )}
+                          )}
+                          <Button
+                            size="icon"
+                            variant="outline"
+                            title="Editar plano"
+                            onClick={() => navigate('/create-workout', { state: { workout } })}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828a4 4 0 01-1.414.828l-4 1a1 1 0 01-1.263-1.263l1-4a4 4 0 01.828-1.414z" /></svg>
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   ))}
