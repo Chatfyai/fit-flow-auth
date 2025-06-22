@@ -34,6 +34,7 @@ const CreateWorkout = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const workoutToEdit = location.state?.workout;
+  const isEditing = !!workoutToEdit;
 
   const [workoutName, setWorkoutName] = useState('');
   const [workoutDays, setWorkoutDays] = useState<WorkoutDay[]>([
@@ -173,36 +174,64 @@ const CreateWorkout = () => {
         expiration_date: expirationDate
       });
 
-      const { data, error } = await supabase
-        .from('workouts')
-        .insert({
-          user_id: user?.id,
-          name: workoutName,
-          workout_days: workoutDays as any,
-          weekly_schedule: weeklySchedule as any,
-          expiration_date: expirationDate,
-          created_at: new Date().toISOString()
-        })
-        .select();
+      if (isEditing) {
+        // Update existing workout
+        const { data, error } = await supabase
+          .from('workouts')
+          .update({
+            name: workoutName,
+            workout_days: workoutDays as any,
+            weekly_schedule: weeklySchedule as any,
+            expiration_date: expirationDate,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', workoutToEdit.id)
+          .select();
 
-      if (error) {
-        console.error('Supabase error:', error);
-        throw error;
+        if (error) {
+          console.error('Supabase error:', error);
+          throw error;
+        }
+
+        console.log('Workout updated successfully:', data);
+
+        toast({
+          title: "Sucesso!",
+          description: "Treino atualizado com sucesso!",
+        });
+      } else {
+        // Create new workout
+        const { data, error } = await supabase
+          .from('workouts')
+          .insert({
+            user_id: user?.id,
+            name: workoutName,
+            workout_days: workoutDays as any,
+            weekly_schedule: weeklySchedule as any,
+            expiration_date: expirationDate,
+            created_at: new Date().toISOString()
+          })
+          .select();
+
+        if (error) {
+          console.error('Supabase error:', error);
+          throw error;
+        }
+
+        console.log('Workout saved successfully:', data);
+
+        toast({
+          title: "Sucesso!",
+          description: "Treino criado com sucesso!",
+        });
       }
-
-      console.log('Workout saved successfully:', data);
-
-      toast({
-        title: "Sucesso!",
-        description: "Treino criado com sucesso!",
-      });
 
       navigate('/dashboard');
     } catch (error) {
-      console.error('Erro ao criar treino:', error);
+      console.error('Erro ao salvar treino:', error);
       toast({
         title: "Erro",
-        description: "Erro ao criar treino. Tente novamente.",
+        description: `Erro ao ${isEditing ? 'atualizar' : 'criar'} treino. Tente novamente.`,
         variant: "destructive"
       });
     } finally {
@@ -224,7 +253,9 @@ const CreateWorkout = () => {
               <div className="w-8 h-8 gradient-bg rounded-full flex items-center justify-center mr-3">
                 <span className="text-sm font-bold text-primary-foreground">💪</span>
               </div>
-              <h1 className="text-xl font-bold text-gray-900">{workoutToEdit ? 'Editar Treino' : 'Criar Novo Treino'}</h1>
+              <h1 className="text-xl font-bold text-gray-900">
+                {isEditing ? 'Editar Treino' : 'Criar Novo Treino'}
+              </h1>
             </div>
           </div>
         </div>
@@ -413,7 +444,7 @@ const CreateWorkout = () => {
             disabled={loading}
             className="gradient-bg text-primary-foreground font-semibold px-8 py-3 text-lg"
           >
-            {loading ? 'Salvando...' : 'Concluir Planejamento'}
+            {loading ? 'Salvando...' : (isEditing ? 'Salvar Alterações' : 'Concluir Planejamento')}
           </Button>
         </div>
       </main>
