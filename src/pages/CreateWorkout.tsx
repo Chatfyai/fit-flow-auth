@@ -9,24 +9,7 @@ import { Trash2, Plus, ArrowLeft, Calendar } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-
-interface Exercise {
-  id: string;
-  name: string;
-  sets: string;
-  variation?: string;
-  rest_time?: number;
-}
-
-interface WorkoutDay {
-  letter: string;
-  name: string;
-  exercises: Exercise[];
-}
-
-interface WeeklySchedule {
-  [key: string]: string[];
-}
+import { Exercise, WorkoutDay, WeeklySchedule } from '@/types/workout';
 
 const CreateWorkout = () => {
   const navigate = useNavigate();
@@ -55,7 +38,28 @@ const CreateWorkout = () => {
   useEffect(() => {
     if (workoutToEdit) {
       setWorkoutName(workoutToEdit.name || '');
-      setWorkoutDays(workoutToEdit.workout_days || [{ letter: 'A', name: 'Treino A', exercises: [] }]);
+      
+      // Convert old format to new format if needed
+      const convertedWorkoutDays = (workoutToEdit.workout_days || []).map((day: any) => ({
+        ...day,
+        exercises: (day.exercises || []).map((exercise: any) => {
+          // If it's old format with 'sets' field, parse it
+          if (exercise.sets && !exercise.series) {
+            const setsMatch = exercise.sets.match(/(\d+)\s*x?\s*de?\s*(\d+)/i);
+            if (setsMatch) {
+              return {
+                ...exercise,
+                series: parseInt(setsMatch[1]),
+                repetitions: setsMatch[2],
+                sets: undefined // Remove old field
+              };
+            }
+          }
+          return exercise;
+        })
+      }));
+      
+      setWorkoutDays(convertedWorkoutDays);
       setWeeklySchedule(workoutToEdit.weekly_schedule || {
         segunda: [], terca: [], quarta: [], quinta: [], sexta: [], sabado: [], domingo: []
       });
@@ -97,7 +101,8 @@ const CreateWorkout = () => {
     newWorkoutDays[dayIndex].exercises.push({
       id: Date.now().toString(),
       name: '',
-      sets: '',
+      series: 3,
+      repetitions: '12',
       variation: '',
       rest_time: 60
     });
@@ -154,10 +159,10 @@ const CreateWorkout = () => {
       return;
     }
 
-    if (workoutDays.some(day => day.exercises.some(exercise => !exercise.name.trim() || !exercise.sets.trim()))) {
+    if (workoutDays.some(day => day.exercises.some(exercise => !exercise.name.trim() || !exercise.series || !exercise.repetitions.trim()))) {
       toast({
         title: "Erro",
-        description: "Todos os exercícios devem ter nome e séries preenchidos",
+        description: "Todos os exercícios devem ter nome, séries e repetições preenchidos",
         variant: "destructive"
       });
       return;
@@ -307,7 +312,7 @@ const CreateWorkout = () => {
                   <CardContent>
                     <div className="space-y-4">
                       {day.exercises.map((exercise, exerciseIndex) => (
-                        <div key={exercise.id} className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4 border rounded-lg">
+                        <div key={exercise.id} className="grid grid-cols-1 md:grid-cols-6 gap-4 p-4 border rounded-lg">
                           <div>
                             <Label>Nome do Exercício</Label>
                             <Input
@@ -317,11 +322,20 @@ const CreateWorkout = () => {
                             />
                           </div>
                           <div>
-                            <Label>Séries e Repetições</Label>
+                            <Label>Séries</Label>
                             <Input
-                              placeholder="Ex: 3x de 12"
-                              value={exercise.sets}
-                              onChange={(e) => updateExercise(dayIndex, exerciseIndex, 'sets', e.target.value)}
+                              type="number"
+                              placeholder="3"
+                              value={exercise.series}
+                              onChange={(e) => updateExercise(dayIndex, exerciseIndex, 'series', parseInt(e.target.value) || 0)}
+                            />
+                          </div>
+                          <div>
+                            <Label>Repetições</Label>
+                            <Input
+                              placeholder="12"
+                              value={exercise.repetitions}
+                              onChange={(e) => updateExercise(dayIndex, exerciseIndex, 'repetitions', e.target.value)}
                             />
                           </div>
                           <div>
@@ -333,7 +347,7 @@ const CreateWorkout = () => {
                             />
                           </div>
                           <div>
-                            <Label>Descanso (segundos)</Label>
+                            <Label>Descanso (seg)</Label>
                             <Input
                               type="number"
                               placeholder="60"

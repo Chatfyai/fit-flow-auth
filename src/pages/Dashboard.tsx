@@ -5,39 +5,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Activity, Calendar, TrendingUp, LogOut, Dumbbell, Clock } from 'lucide-react';
+import { Exercise, WorkoutDay, WeeklySchedule, Workout } from '@/types/workout';
 
 interface WorkoutSession {
   id: string;
   date: string;
   duration: number;
   workout_id: string;
-}
-
-interface Exercise {
-  id: string;
-  name: string;
-  sets: string;
-  variation?: string;
-  rest_time?: number;
-}
-
-interface WorkoutDay {
-  letter: string;
-  name: string;
-  exercises: Exercise[];
-}
-
-interface WeeklySchedule {
-  [key: string]: string[];
-}
-
-interface Workout {
-  id: string;
-  name: string;
-  created_at: string;
-  expiration_date: string;
-  workout_days: WorkoutDay[];
-  weekly_schedule: WeeklySchedule;
 }
 
 const Dashboard = () => {
@@ -133,6 +107,18 @@ const Dashboard = () => {
 
   const handleSignOut = async () => {
     await signOut();
+  };
+
+  // Helper function to get exercise display text
+  const getExerciseDisplay = (exercise: Exercise | any) => {
+    if (exercise.series && exercise.repetitions) {
+      return `${exercise.series} séries de ${exercise.repetitions}`;
+    }
+    // Fallback for old format
+    if (exercise.sets) {
+      return exercise.sets;
+    }
+    return 'Séries não definidas';
   };
 
   const thisWeekSessions = workoutSessions.filter(session => {
@@ -255,7 +241,7 @@ const Dashboard = () => {
                           <div className="flex-1">
                             <p className="font-medium">{exercise.name}</p>
                             <p className="text-sm text-muted-foreground">
-                              {exercise.sets}
+                              {getExerciseDisplay(exercise)}
                               {exercise.variation && ` • ${exercise.variation}`}
                             </p>
                           </div>
