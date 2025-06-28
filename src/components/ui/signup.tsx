@@ -209,7 +209,7 @@ export default function ModernSignup({ onSwitchToLogin }: ModernSignupProps) {
       toast({
         title: "Erro no cadastro",
         description: "As senhas não coincidem!",
-        variant: "destructive",
+        variant: "warning",
       });
       return;
     }
@@ -218,7 +218,7 @@ export default function ModernSignup({ onSwitchToLogin }: ModernSignupProps) {
       toast({
         title: "Erro no cadastro",
         description: "A senha deve ter pelo menos 6 caracteres",
-        variant: "destructive",
+        variant: "warning",
       });
       return;
     }
@@ -234,19 +234,20 @@ export default function ModernSignup({ onSwitchToLogin }: ModernSignupProps) {
           description: error.message === 'User already registered' 
             ? "Este email já está cadastrado" 
             : error.message,
-          variant: "destructive",
+          variant: "warning",
         });
       } else {
         toast({
           title: "Cadastro realizado com sucesso!",
           description: "Verifique seu email para confirmar sua conta",
+          variant: "warning",
         });
       }
     } catch (error) {
       toast({
         title: "Erro no cadastro",
         description: "Ocorreu um erro inesperado. Tente novamente.",
-        variant: "destructive",
+        variant: "warning",
       });
     } finally {
       setLoading(false);

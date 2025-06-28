@@ -6,7 +6,7 @@ import {
   Calendar, 
   Plus, 
   Activity, 
-  User 
+  Bot 
 } from "lucide-react"
 
 interface NavigationItem {
@@ -24,10 +24,10 @@ const navigationItems: NavigationItem[] = [
     path: '/dashboard'
   },
   {
-    id: 'workouts',
-    label: 'Treinos',
+    id: 'goals',
+    label: 'Metas',
     icon: Activity,
-    path: '/treino-do-dia'
+    path: '/goals'
   },
   {
     id: 'create',
@@ -42,10 +42,10 @@ const navigationItems: NavigationItem[] = [
     path: '/agenda'
   },
   {
-    id: 'profile',
-    label: 'Perfil',
-    icon: User,
-    path: '/profile'
+    id: 'chat',
+    label: 'IA',
+    icon: Bot,
+    path: '/chat'
   }
 ]
 

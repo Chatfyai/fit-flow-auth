@@ -5,6 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { LoadingSpinner } from "@/components/ui/progress-indicator";
+import { StagewiseToolbar } from "@stagewise/toolbar-react";
+import { ReactPlugin } from "@stagewise-plugins/react";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import CreateWorkout from "./pages/CreateWorkout";
@@ -12,6 +14,8 @@ import NotFound from "./pages/NotFound";
 import TodaysWorkout from './pages/TodaysWorkout';
 import Profile from './pages/Profile';
 import Agenda from './pages/Agenda';
+import Chat from './pages/Chat';
+import Goals from './pages/Goals';
 
 const queryClient = new QueryClient();
 
@@ -42,6 +46,8 @@ const AppContent = () => {
         <Route path="/treino-do-dia" element={user ? <TodaysWorkout /> : <Index />} />
         <Route path="/profile" element={user ? <Profile /> : <Index />} />
         <Route path="/agenda" element={user ? <Agenda /> : <Index />} />
+        <Route path="/chat" element={user ? <Chat /> : <Index />} />
+        <Route path="/goals" element={user ? <Goals /> : <Index />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
@@ -52,6 +58,11 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <AuthProvider>
+        <StagewiseToolbar 
+          config={{ 
+            plugins: [ReactPlugin] 
+          }} 
+        />
         <Toaster />
         <Sonner />
         <AppContent />

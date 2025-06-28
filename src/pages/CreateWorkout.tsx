@@ -222,7 +222,7 @@ const CreateWorkout = () => {
       toast({
         title: "Erro",
         description: "Por favor, preencha todos os campos obrigatórios destacados em vermelho",
-        variant: "destructive"
+        variant: "warning"
       });
       return;
     }
@@ -232,7 +232,7 @@ const CreateWorkout = () => {
       toast({
         title: "Erro",
         description: "Todos os treinos devem ter pelo menos um exercício",
-        variant: "destructive"
+        variant: "warning"
       });
       return;
     }
@@ -272,6 +272,7 @@ const CreateWorkout = () => {
         toast({
           title: "Sucesso!",
           description: "Treino atualizado com sucesso!",
+          variant: "warning",
         });
       } else {
         // Create new workout
@@ -297,6 +298,7 @@ const CreateWorkout = () => {
         toast({
           title: "Sucesso!",
           description: "Treino criado com sucesso!",
+          variant: "warning",
         });
       }
 
@@ -306,7 +308,7 @@ const CreateWorkout = () => {
       toast({
         title: "Erro",
         description: `Erro ao ${isEditing ? 'atualizar' : 'criar'} treino. Tente novamente.`,
-        variant: "destructive"
+        variant: "warning"
       });
     } finally {
       setLoading(false);

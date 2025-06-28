@@ -189,19 +189,20 @@ export default function ModernLogin({ onSwitchToRegister }: ModernLoginProps) {
           description: error.message === 'Invalid login credentials' 
             ? "Email ou senha incorretos" 
             : error.message,
-          variant: "destructive",
+          variant: "warning",
         });
       } else {
         toast({
           title: "Login realizado com sucesso!",
           description: "Bem-vindo ao PlayFit",
+          variant: "warning",
         });
       }
     } catch (error) {
       toast({
         title: "Erro no login",
         description: "Ocorreu um erro inesperado. Tente novamente.",
-        variant: "destructive",
+        variant: "warning",
       });
     } finally {
       setLoading(false);

@@ -234,4 +234,31 @@
     position: fixed;
     z-index: 9999;
   }
+
+  /* Estilos específicos para notificações amarelas */
+  [data-sonner-toast][data-variant="warning"],
+  .toast-warning,
+  [data-radix-toast-root][data-variant="warning"] {
+    background-color: oklch(0.9 0.15 85) !important;
+    border-color: oklch(0.85 0.12 75) !important;
+    color: white !important;
+  }
+
+  [data-sonner-toast][data-variant="warning"] *,
+  .toast-warning *,
+  [data-radix-toast-root][data-variant="warning"] * {
+    color: white !important;
+  }
+
+  [data-sonner-toast][data-variant="warning"] button,
+  .toast-warning button,
+  [data-radix-toast-root][data-variant="warning"] button {
+    color: rgba(255, 255, 255, 0.8) !important;
+  }
+
+  [data-sonner-toast][data-variant="warning"] button:hover,
+  .toast-warning button:hover,
+  [data-radix-toast-root][data-variant="warning"] button:hover {
+    color: white !important;
+  }
 }

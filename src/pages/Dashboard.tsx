@@ -8,6 +8,8 @@ import { Activity, Calendar, TrendingUp, LogOut, Dumbbell, Clock, Plus, User, Ed
 import { Exercise, WorkoutDay, WeeklySchedule, Workout } from '@/types/workout';
 import { BottomNavigation } from '@/components/ui/bottom-navigation';
 import { ProgressIndicator, LoadingSpinner } from '@/components/ui/progress-indicator';
+import { Typewriter } from '@/components/ui/typewriter';
+import { PlayFitLogo } from '@/components/ui/playfit-logo';
 
 interface WorkoutSession {
   id: string;
@@ -142,7 +144,7 @@ const Dashboard = () => {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <div className="w-10 h-10 gradient-bg rounded-2xl flex items-center justify-center mr-3 shadow-md">
-                <span className="text-lg font-bold text-primary-foreground">💪</span>
+                <PlayFitLogo size="md" className="text-primary-foreground" />
               </div>
               <h1 className="text-xl font-bold text-gray-900">PlayFit</h1>
             </div>
@@ -150,9 +152,14 @@ const Dashboard = () => {
               <span className="text-sm text-gray-600 hidden md:block">
                 Olá, {user?.user_metadata?.full_name || user?.email}!
               </span>
-              <Button variant="outline" size="sm" onClick={handleSignOut}>
-                <LogOut className="h-4 w-4 mr-2" />
-                Sair
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => navigate('/profile')}
+                className="w-10 h-10 rounded-full p-0 hover:bg-gray-100"
+                title="Meu Perfil"
+              >
+                <User className="h-8 w-8 text-gray-600" />
               </Button>
             </div>
           </div>
@@ -162,6 +169,22 @@ const Dashboard = () => {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
+          {/* Vamos treinar + nome do usuário */}
+          <div className="mb-6 text-center">
+            <p className="text-lg md:text-xl lg:text-2xl text-gray-700 font-medium flex items-center justify-center flex-wrap">
+              <span>Vamos dar um play no treino</span>
+              <Typewriter
+                text={user?.user_metadata?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || 'Atleta'}
+                speed={100}
+                loop={false}
+                showCursor={true}
+                cursorChar={"💪"}
+                className="text-yellow-500 font-bold ml-2"
+                waitTime={3000}
+              />
+            </p>
+          </div>
+          
           <h2 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h2>
           <p className="text-gray-600">Acompanhe seu progresso fitness</p>
         </div>
