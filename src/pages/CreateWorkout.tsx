@@ -609,30 +609,67 @@ const CreateWorkout = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {weekDays.map(({ key, label }) => (
                 <div key={key}>
-                  <Label>{label}</Label>
-                  <Select
-                    value={weeklySchedule[key].join(',')}
-                    onValueChange={(value) => updateWeeklySchedule(key, value === 'rest' ? [] : value.split(','))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione os treinos" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="rest">Descanso</SelectItem>
-                      {workoutDays.map(day => (
-                        <SelectItem key={day.letter} value={day.letter}>
-                          Treino {day.letter}
-                        </SelectItem>
-                      ))}
-                      {workoutDays.length > 1 && workoutDays.map((day1, i) => 
-                        workoutDays.slice(i + 1).map(day2 => (
-                          <SelectItem key={`${day1.letter},${day2.letter}`} value={`${day1.letter},${day2.letter}`}>
-                            Treinos {day1.letter} + {day2.letter}
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
+                  <Label className="mb-3 block">{label}</Label>
+                  <div className="space-y-3">
+                    {/* Botão de Descanso */}
+                    <Button
+                      type="button"
+                      variant={weeklySchedule[key].length === 0 ? "default" : "outline"}
+                      className={`w-full justify-start ${
+                        weeklySchedule[key].length === 0 
+                          ? "bg-gray-100 text-gray-700 border-gray-300" 
+                          : "hover:bg-gray-50"
+                      }`}
+                      onClick={() => updateWeeklySchedule(key, [])}
+                    >
+                      Descanso
+                    </Button>
+                    
+                    {/* Botões de Treinos */}
+                    <div className="flex flex-wrap gap-2">
+                      {workoutDays.map(day => {
+                        const isSelected = weeklySchedule[key].includes(day.letter);
+                        return (
+                          <Button
+                            key={day.letter}
+                            type="button"
+                            variant={isSelected ? "default" : "outline"}
+                            size="sm"
+                            className={`${
+                              isSelected 
+                                ? "gradient-bg text-white" 
+                                : "hover:bg-gray-50"
+                            }`}
+                            onClick={() => {
+                              const currentSchedule = weeklySchedule[key];
+                              let newSchedule;
+                              
+                              if (isSelected) {
+                                // Remove o treino se já estiver selecionado
+                                newSchedule = currentSchedule.filter(letter => letter !== day.letter);
+                              } else {
+                                // Adiciona o treino se não estiver selecionado
+                                newSchedule = [...currentSchedule, day.letter].sort();
+                              }
+                              
+                              updateWeeklySchedule(key, newSchedule);
+                            }}
+                          >
+                            {day.letter}
+                          </Button>
+                        );
+                      })}
+                    </div>
+                    
+                    {/* Exibição dos treinos selecionados */}
+                    {weeklySchedule[key].length > 0 && (
+                      <div className="mt-2 p-2 bg-gray-50 rounded-lg">
+                        <span className="text-sm text-gray-600">
+                          Treinos selecionados: {weeklySchedule[key].join(' + ')}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
