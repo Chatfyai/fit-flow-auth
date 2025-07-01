@@ -1,196 +1,81 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Bot, User, Send, ArrowLeft } from 'lucide-react';
-import { BottomNavigation } from '@/components/ui/bottom-navigation';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-
-interface Message {
-  id: string;
-  text: string;
-  isBot: boolean;
-  timestamp: Date;
-}
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Bot, ArrowLeft, MessageSquare, Zap } from 'lucide-react';
+import { BottomNavigation } from '@/components/ui/bottom-navigation';
 
 const Chat = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      text: `Olá ${user?.user_metadata?.full_name?.split(' ')[0] || 'Atleta'}! 👋 Sou sua IA personal trainer. Como posso te ajudar hoje?`,
-      isBot: true,
-      timestamp: new Date()
-    }
-  ]);
-  const [inputMessage, setInputMessage] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  const handleSendMessage = async () => {
-    if (!inputMessage.trim()) return;
-
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      text: inputMessage,
-      isBot: false,
-      timestamp: new Date()
-    };
-
-    setMessages(prev => [...prev, userMessage]);
-    setInputMessage('');
-    setIsTyping(true);
-
-    // Simular resposta da IA após 1-2 segundos
-    setTimeout(() => {
-      const botResponses = [
-        "Ótima pergunta! Vou te ajudar com isso. 💪",
-        "Baseado no seu perfil, recomendo focar em exercícios compostos.",
-        "Que tal criarmos um plano personalizado para você?",
-        "Lembre-se: consistência é a chave para o sucesso! 🎯",
-        "Posso te sugerir alguns exercícios específicos para seu objetivo.",
-        "Vamos trabalhar juntos para alcançar seus objetivos fitness!"
-      ];
-
-      const randomResponse = botResponses[Math.floor(Math.random() * botResponses.length)];
-
-      const botMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        text: randomResponse,
-        isBot: true,
-        timestamp: new Date()
-      };
-
-      setMessages(prev => [...prev, botMessage]);
-      setIsTyping(false);
-    }, 1500);
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 to-accent/10 pb-20">
       {/* Header */}
-      <header className="bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-sm sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+      <header className="bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center h-16">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate('/dashboard')}
+              className="mr-3 hover:bg-gray-100 rounded-xl"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
             <div className="flex items-center">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate('/dashboard')}
-                className="mr-3 hover:bg-gray-100"
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-              <div className="w-10 h-10 gradient-bg rounded-full flex items-center justify-center mr-3 shadow-md">
-                <Bot className="h-6 w-6 text-white" />
+              <div className="w-8 h-8 bg-gray-100 rounded-xl flex items-center justify-center mr-3">
+                <Bot className="h-4 w-4 text-gray-600" />
               </div>
-              <div>
-                <h1 className="text-lg font-bold text-gray-900">IA Personal Trainer</h1>
-                <p className="text-xs text-gray-500">Online agora</p>
-              </div>
+              <h1 className="text-xl font-bold text-gray-900">IA Personal Trainer</h1>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Chat Messages */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 h-[calc(100vh-140px)] overflow-hidden">
-        <div className="h-full flex flex-col">
-          <div className="flex-1 overflow-y-auto space-y-4 mb-4">
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex ${message.isBot ? 'justify-start' : 'justify-end'}`}
-              >
-                <div className={`flex items-start max-w-[80%] ${message.isBot ? 'flex-row' : 'flex-row-reverse'}`}>
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    message.isBot 
-                      ? 'bg-gradient-to-r from-primary to-accent mr-2' 
-                      : 'bg-gray-600 ml-2'
-                  }`}>
-                    {message.isBot ? (
-                      <Bot className="h-4 w-4 text-white" />
-                    ) : (
-                      <User className="h-4 w-4 text-white" />
-                    )}
+      {/* Main Content */}
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex flex-col items-center justify-center min-h-[60vh]">
+          <Card className="w-full max-w-md text-center">
+            <CardHeader className="pb-4">
+              <div className="w-20 h-20 bg-gradient-to-br from-primary/20 to-accent/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <MessageSquare className="h-10 w-10 text-primary" />
+              </div>
+              <CardTitle className="text-2xl font-bold text-gray-900">
+                IA Personal Trainer
+              </CardTitle>
+              <CardDescription className="text-base text-gray-600">
+                Seu assistente inteligente para treinos
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
+                  <div className="flex items-center justify-center mb-3">
+                    <Zap className="h-6 w-6 text-yellow-600 mr-2" />
+                    <span className="font-semibold text-yellow-800">Em Desenvolvimento</span>
                   </div>
-                  <Card className={`p-3 ${
-                    message.isBot 
-                      ? 'bg-white border-gray-200' 
-                      : 'bg-gradient-to-r from-primary to-accent text-white border-primary'
-                  }`}>
-                    <p className="text-sm leading-relaxed">{message.text}</p>
-                    <span className={`text-xs mt-1 block ${
-                      message.isBot ? 'text-gray-500' : 'text-white/70'
-                    }`}>
-                      {message.timestamp.toLocaleTimeString('pt-BR', { 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                      })}
-                    </span>
-                  </Card>
+                  <p className="text-sm text-yellow-700 leading-relaxed">
+                    Esta funcionalidade ainda não está disponível na versão atual do PlayFit. 
+                    Estamos trabalhando para trazer em breve recursos como:
+                  </p>
+                  <ul className="text-sm text-yellow-700 mt-3 space-y-1">
+                    <li>• Chat inteligente com IA especializada</li>
+                    <li>• Recomendações personalizadas de treino</li>
+                    <li>• Análise de performance e progresso</li>
+                    <li>• Dicas nutricionais personalizadas</li>
+                    <li>• Correção de forma e técnica</li>
+                  </ul>
                 </div>
+                
+                <Button 
+                  onClick={() => navigate('/dashboard')}
+                  className="w-full gradient-bg text-primary-foreground font-semibold shadow-lg hover:shadow-xl"
+                >
+                  Voltar ao Dashboard
+                </Button>
               </div>
-            ))}
-            
-            {isTyping && (
-              <div className="flex justify-start">
-                <div className="flex items-start max-w-[80%]">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-r from-primary to-accent flex items-center justify-center mr-2">
-                    <Bot className="h-4 w-4 text-white" />
-                  </div>
-                  <Card className="p-3 bg-white border-gray-200">
-                    <div className="flex space-x-1">
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                    </div>
-                  </Card>
-                </div>
-              </div>
-            )}
-            <div ref={messagesEndRef} />
-          </div>
-
-          {/* Input Area */}
-          <div className="border-t border-gray-200 pt-4">
-            <div className="flex items-center space-x-2">
-              <div className="flex-1 relative">
-                <textarea
-                  value={inputMessage}
-                  onChange={(e) => setInputMessage(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder="Digite sua mensagem..."
-                  className="w-full p-3 pr-12 border border-gray-300 rounded-2xl resize-none focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                  rows={1}
-                  style={{ minHeight: '44px', maxHeight: '120px' }}
-                />
-              </div>
-              <Button
-                onClick={handleSendMessage}
-                disabled={!inputMessage.trim() || isTyping}
-                className="gradient-bg text-white w-11 h-11 rounded-full p-0 flex items-center justify-center shadow-lg hover:shadow-xl disabled:opacity-50"
-              >
-                <Send className="h-5 w-5" />
-              </Button>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       </main>
 

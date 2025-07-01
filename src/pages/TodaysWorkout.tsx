@@ -6,6 +6,8 @@ import { Progress } from '@/components/ui/progress';
 import { Clock, ArrowLeft, RotateCcw, CheckCircle, ChevronDown, ChevronUp, Play, Pause } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Exercise } from '@/types/workout';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 function SetTimer({ restTime, onComplete }: { restTime: number; onComplete?: () => void }) {
   const [timeLeft, setTimeLeft] = useState(restTime);
@@ -268,7 +270,8 @@ const TodaysWorkout = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { workoutDays, date } = location.state || {};
+  const { user } = useAuth();
+  const { workoutDays, date, workoutId } = location.state || {};
 
   // Track completion and start status for each set of each exercise
   const [exerciseSets, setExerciseSets] = useState<{ 
@@ -280,6 +283,106 @@ const TodaysWorkout = () => {
 
   // Estado para controlar qual exercício está expandido (accordion)
   const [expandedExerciseId, setExpandedExerciseId] = useState<string | null>(null);
+  
+  // Estado para controlar o loading do salvamento da sessão
+  const [isSavingSession, setIsSavingSession] = useState(false);
+
+  // Função para obter a chave do localStorage baseada na data atual
+  const getStorageKey = () => {
+    const today = new Date().toISOString().split('T')[0];
+    return `workout_progress_${today}`;
+  };
+
+  // Função para salvar o progresso no localStorage
+  const saveProgressToStorage = (newExerciseSets: typeof exerciseSets) => {
+    try {
+      localStorage.setItem(getStorageKey(), JSON.stringify(newExerciseSets));
+      console.log('💾 Progresso salvo localmente:', newExerciseSets);
+    } catch (error) {
+      console.error('Erro ao salvar progresso:', error);
+    }
+  };
+
+  // Função para carregar o progresso do localStorage
+  const loadProgressFromStorage = () => {
+    try {
+      const saved = localStorage.getItem(getStorageKey());
+      if (saved) {
+        const parsedProgress = JSON.parse(saved);
+        console.log('📥 Progresso carregado:', parsedProgress);
+        return parsedProgress;
+      }
+    } catch (error) {
+      console.error('Erro ao carregar progresso:', error);
+    }
+    return {};
+  };
+
+  // Função para limpar progressos de dias anteriores
+  const cleanOldProgress = () => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('workout_progress_') && !key.includes(today)) {
+          localStorage.removeItem(key);
+          console.log('🗑️ Progresso antigo removido:', key);
+        }
+      });
+    } catch (error) {
+      console.error('Erro ao limpar progresso antigo:', error);
+    }
+  };
+
+     // Carregar progresso salvo quando o componente montar
+   React.useEffect(() => {
+     cleanOldProgress(); // Limpa progressos antigos
+     
+     // Primeiro inicializar todos os exercícios
+     if (workoutDays && workoutDays.length > 0) {
+       workoutDays.forEach((workoutDay: any) => {
+         workoutDay.exercises.forEach((exercise: Exercise) => {
+           const seriesCount = exercise.series || 0;
+           initializeExerciseSets(exercise.id, seriesCount);
+         });
+       });
+       
+       // Depois carregar o progresso salvo
+       const savedProgress = loadProgressFromStorage();
+       if (Object.keys(savedProgress).length > 0) {
+         setExerciseSets(savedProgress);
+         toast({
+           title: '📥 Progresso restaurado',
+           description: 'Continuando de onde você parou!',
+           className: 'bg-blue-500 border-blue-600 text-white shadow-lg',
+           style: {
+             backgroundColor: '#3b82f6',
+             borderColor: '#2563eb',
+             color: '#ffffff'
+           },
+           duration: 3000
+         });
+       }
+     }
+   }, [workoutDays]);
+
+   // Aviso ao sair da página se houver progresso não salvo
+   React.useEffect(() => {
+     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+       const completedSetsCount = Object.values(exerciseSets).reduce((total, exercise) => {
+         return total + exercise.completed.filter(Boolean).length;
+       }, 0);
+       
+       // Apenas avisar se há progresso e o treino não foi concluído
+       if (completedSetsCount > 0) {
+         e.preventDefault();
+         e.returnValue = 'Você tem progresso não salvo. Tem certeza que deseja sair?';
+         return 'Você tem progresso não salvo. Tem certeza que deseja sair?';
+       }
+     };
+
+     window.addEventListener('beforeunload', handleBeforeUnload);
+     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+   }, [exerciseSets]);
 
   // Função para controlar expansão de exercícios (apenas um por vez)
   const handleExerciseToggle = (exerciseId: string) => {
@@ -301,27 +404,33 @@ const TodaysWorkout = () => {
   };
 
   const handleSetComplete = (exerciseId: string, setIndex: number) => {
-    setExerciseSets(prev => ({
-      ...prev,
+    const newExerciseSets = {
+      ...exerciseSets,
       [exerciseId]: {
-        ...prev[exerciseId],
-        completed: prev[exerciseId].completed.map((completed, index) => 
+        ...exerciseSets[exerciseId],
+        completed: exerciseSets[exerciseId].completed.map((completed, index) => 
           index === setIndex ? true : completed
         )
       }
-    }));
+    };
+    
+    setExerciseSets(newExerciseSets);
+    saveProgressToStorage(newExerciseSets); // Salva automaticamente
   };
 
   const handleSetStart = (exerciseId: string, setIndex: number) => {
-    setExerciseSets(prev => ({
-      ...prev,
+    const newExerciseSets = {
+      ...exerciseSets,
       [exerciseId]: {
-        ...prev[exerciseId],
-        started: prev[exerciseId].started.map((started, index) => 
+        ...exerciseSets[exerciseId],
+        started: exerciseSets[exerciseId].started.map((started, index) => 
           index === setIndex ? true : started
         )
       }
-    }));
+    };
+    
+    setExerciseSets(newExerciseSets);
+    saveProgressToStorage(newExerciseSets); // Salva automaticamente
   };
 
   // Calculate progress
@@ -338,6 +447,107 @@ const TodaysWorkout = () => {
   }, 0);
 
   const progressPercentage = totalSets > 0 ? (completedSets / totalSets) * 100 : 0;
+
+  // Função para salvar a sessão de treino no banco de dados
+  const saveWorkoutSession = async () => {
+    if (!user) {
+      toast({
+        title: 'Erro',
+        description: 'Usuário não encontrado.',
+        variant: 'destructive'
+      });
+      return false;
+    }
+
+    setIsSavingSession(true);
+    
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Verificar se já existe uma sessão para hoje
+      const { data: existingSession } = await supabase
+        .from('workout_sessions')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('date', today)
+        .single();
+
+      if (existingSession) {
+        console.log('⚠️ Sessão já exists para hoje, atualizando...');
+        
+        const { data, error } = await supabase
+          .from('workout_sessions')
+          .update({
+            workout_id: workoutId || null,
+            notes: `Treino concluído com ${completedSets}/${totalSets} séries`
+          })
+          .eq('id', existingSession.id)
+          .select();
+
+        if (error) {
+          console.error('❌ Erro ao atualizar sessão:', error);
+          toast({
+            title: 'Erro ao salvar',
+            description: `Não foi possível atualizar: ${error.message}`,
+            variant: 'destructive'
+          });
+          return false;
+        }
+
+                 console.log('✅ Sessão atualizada com sucesso:', data);
+         
+         // Limpar o progresso salvo localmente após atualizar com sucesso
+         localStorage.removeItem(getStorageKey());
+         console.log('🗑️ Progresso local limpo após atualização');
+         
+         return true;
+      }
+
+      console.log('🏋️ Salvando nova sessão de treino...', {
+        user_id: user.id,
+        workout_id: workoutId,
+        date: today,
+        completedSets,
+        totalSets
+      });
+
+      const { data, error } = await supabase.from('workout_sessions').insert({
+        user_id: user.id,
+        workout_id: workoutId || null,
+        date: today, // Formato YYYY-MM-DD
+        duration: null, // Pode ser calculado se necessário
+        notes: `Treino concluído com ${completedSets}/${totalSets} séries`
+      }).select();
+
+      if (error) {
+        console.error('❌ Erro ao salvar sessão:', error);
+        toast({
+          title: 'Erro ao salvar',
+          description: `Não foi possível salvar: ${error.message}`,
+          variant: 'destructive'
+        });
+        return false;
+      }
+
+              console.log('✅ Sessão salva com sucesso:', data);
+        
+        // Limpar o progresso salvo localmente após salvar com sucesso
+        localStorage.removeItem(getStorageKey());
+        console.log('🗑️ Progresso local limpo após conclusão');
+        
+        return true;
+    } catch (error) {
+      console.error('❌ Erro inesperado ao salvar sessão:', error);
+      toast({
+        title: 'Erro',
+        description: 'Erro inesperado ao salvar a sessão.',
+        variant: 'destructive'
+      });
+      return false;
+    } finally {
+      setIsSavingSession(false);
+    }
+  };
 
   // Função para criar confetes animados
   const createConfetti = () => {
@@ -376,30 +586,57 @@ const TodaysWorkout = () => {
     }
   }
 
-  const handleWorkoutComplete = () => {
+  const handleWorkoutComplete = async () => {
     if (completedSets === totalSets && totalSets > 0) {
-      // Dispara a animação de confetes
-      createConfetti()
+      // Dispara a animação de confetes imediatamente
+      createConfetti();
       
-      toast({
-        title: 'Treino Concluído!',
-        description: 'Parabéns! Você completou todo o treino de hoje.',
-        className: 'bg-green-500 border-green-600 text-white shadow-lg [&>button]:text-white [&>button]:hover:text-gray-100',
-        style: {
-          backgroundColor: '#10b981',
-          borderColor: '#059669',
-          color: '#ffffff',
-          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
-        }
-      });
+      // Salva a sessão no banco de dados
+      const sessionSaved = await saveWorkoutSession();
+      
+      if (sessionSaved) {
+        toast({
+          title: 'Treino Concluído!',
+          description: 'Parabéns! Seu treino foi salvo com sucesso.',
+          className: 'bg-green-500 border-green-600 text-white shadow-lg [&>button]:text-white [&>button]:hover:text-gray-100',
+          style: {
+            backgroundColor: '#10b981',
+            borderColor: '#059669',
+            color: '#ffffff',
+            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
+          }
+        });
+        
+        // Navegar de volta após um breve delay
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 2000);
+      } else {
+        toast({
+          title: 'Treino Concluído!',
+          description: 'Parabéns! Houve um problema ao salvar, mas seu treino foi concluído.',
+          className: 'bg-green-500 border-green-600 text-white shadow-lg [&>button]:text-white [&>button]:hover:text-gray-100',
+          style: {
+            backgroundColor: '#10b981',
+            borderColor: '#059669',
+            color: '#ffffff',
+            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
+          }
+        });
+        
+        // Navegar de volta após um breve delay mesmo se não salvou
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 2000);
+      }
     } else {
       toast({
         title: 'Treino incompleto',
         description: `Você ainda tem ${totalSets - completedSets} séries para concluir.`,
-        className: 'bg-green-500 border-green-600 text-white shadow-lg [&>button]:text-white [&>button]:hover:text-gray-100',
+        className: 'bg-amber-500 border-amber-600 text-white shadow-lg [&>button]:text-white [&>button]:hover:text-gray-100',
         style: {
-          backgroundColor: '#10b981',
-          borderColor: '#059669',
+          backgroundColor: '#f59e0b',
+          borderColor: '#d97706',
           color: '#ffffff',
           boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
         }
@@ -514,11 +751,18 @@ const TodaysWorkout = () => {
                       ? 'bg-green-600 hover:bg-green-700' 
                       : 'gradient-bg text-primary-foreground'
                   }`}
-                  disabled={completedSets === 0}
+                  disabled={completedSets === 0 || isSavingSession}
                 >
-                  {completedSets === totalSets 
-                    ? '🎉 Treino Concluído!' 
-                    : `Finalizar Treino (${completedSets}/${totalSets})`}
+                  {isSavingSession ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                      Salvando...
+                    </>
+                  ) : completedSets === totalSets ? (
+                    '🎉 Treino Concluído!' 
+                  ) : (
+                    `Finalizar Treino (${completedSets}/${totalSets})`
+                  )}
                 </Button>
               </div>
             )}

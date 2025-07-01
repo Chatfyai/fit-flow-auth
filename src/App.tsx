@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { LoadingSpinner } from "@/components/ui/progress-indicator";
+import { PlayFitLogo } from "@/components/ui/playfit-logo";
 import { StagewiseToolbar } from "@stagewise/toolbar-react";
 import { ReactPlugin } from "@stagewise-plugins/react";
 import Index from "./pages/Index";
@@ -27,7 +28,7 @@ const AppContent = () => {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 to-accent/10">
         <div className="text-center">
           <div className="w-20 h-20 gradient-bg rounded-2xl flex items-center justify-center mb-6 mx-auto shadow-lg">
-            <span className="text-3xl font-bold text-primary-foreground">💪</span>
+            <PlayFitLogo size="lg" className="text-primary-foreground" />
           </div>
           <LoadingSpinner size="lg" variant="primary" className="mx-auto mb-4" />
           <p className="text-gray-600 font-medium">Carregando aplicação...</p>

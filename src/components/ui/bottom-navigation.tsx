@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom"
 import { cn } from "@/lib/utils"
 import { 
   Home, 
-  Calendar, 
+  Scale, 
   Plus, 
   Activity, 
   Bot 
@@ -37,8 +37,8 @@ const navigationItems: NavigationItem[] = [
   },
   {
     id: 'calendar',
-    label: 'Agenda',
-    icon: Calendar,
+    label: 'IMC',
+    icon: Scale,
     path: '/agenda'
   },
   {

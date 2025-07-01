@@ -12,6 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Exercise, WorkoutDay, WeeklySchedule } from '@/types/workout';
 import { BottomNavigation } from '@/components/ui/bottom-navigation';
+import { PlayFitLogo } from '@/components/ui/playfit-logo';
 
 const CreateWorkout = () => {
   const navigate = useNavigate();
@@ -327,7 +328,7 @@ const CreateWorkout = () => {
                 Voltar
               </Button>
               <div className="w-8 h-8 gradient-bg rounded-full flex items-center justify-center mr-3">
-                <span className="text-sm font-bold text-primary-foreground">💪</span>
+                <PlayFitLogo size="sm" className="text-primary-foreground" />
               </div>
               <h1 className="text-xl font-bold text-gray-900">
                 {isEditing ? 'Editar Treino' : 'Criar Novo Treino'}
@@ -342,7 +343,7 @@ const CreateWorkout = () => {
         {isEditing && !isDataLoaded ? (
           <div className="text-center py-12">
             <div className="w-20 h-20 gradient-bg rounded-2xl flex items-center justify-center mb-6 mx-auto shadow-lg">
-              <span className="text-3xl font-bold text-primary-foreground">💪</span>
+              <PlayFitLogo size="lg" className="text-primary-foreground" />
             </div>
             <p className="text-gray-600 font-medium">Carregando dados do treino...</p>
           </div>

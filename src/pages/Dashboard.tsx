@@ -128,13 +128,37 @@ const Dashboard = () => {
   const thisWeekSessions = workoutSessions.filter(session => {
     const sessionDate = new Date(session.date);
     const today = new Date();
-    const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-    return sessionDate >= weekAgo && sessionDate <= today;
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay()); // Início da semana (domingo)
+    startOfWeek.setHours(0, 0, 0, 0);
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6); // Fim da semana (sábado)
+    endOfWeek.setHours(23, 59, 59, 999);
+    return sessionDate >= startOfWeek && sessionDate <= endOfWeek;
   });
 
+  // Calcular quantos dias da semana estão programados para treinar
+  const getWeeklyGoal = () => {
+    const activeWorkouts = workouts.filter(workout => {
+      if (!workout.expiration_date) return true;
+      return new Date(workout.expiration_date) >= new Date();
+    });
+
+    if (activeWorkouts.length === 0) return 0;
+
+    const currentWorkout = activeWorkouts[0];
+    if (!currentWorkout.weekly_schedule) return 3; // Fallback padrão
+
+    // Contar quantos dias da semana têm treinos programados
+    const daysWithWorkouts = Object.values(currentWorkout.weekly_schedule)
+      .filter((dayLetters: any) => Array.isArray(dayLetters) && dayLetters.length > 0).length;
+    
+    return daysWithWorkouts || 3; // Fallback se não houver dias programados
+  };
+
   const totalWorkouts = workoutSessions.length;
-  const weeklyGoal = 3; // Example goal
-  const progressPercentage = Math.min((thisWeekSessions.length / weeklyGoal) * 100, 100);
+  const weeklyGoal = getWeeklyGoal();
+  const progressPercentage = weeklyGoal > 0 ? Math.min((thisWeekSessions.length / weeklyGoal) * 100, 100) : 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 to-accent/10 pb-20">
@@ -143,8 +167,8 @@ const Dashboard = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <div className="w-10 h-10 gradient-bg rounded-2xl flex items-center justify-center mr-3 shadow-md">
-                <PlayFitLogo size="md" className="text-primary-foreground" />
+              <div className="w-10 h-10 rounded-2xl flex items-center justify-center mr-3">
+                <PlayFitLogo size="md" className="text-yellow-500" />
               </div>
               <h1 className="text-xl font-bold text-gray-900">PlayFit</h1>
             </div>
@@ -239,7 +263,19 @@ const Dashboard = () => {
 
         {/* Today's Workout */}
         <Card className="mb-8 cursor-pointer hover:shadow-xl transition-all duration-300 ease-out hover:-translate-y-1" 
-              onClick={() => navigate('/treino-do-dia', { state: { workoutDays: todaysWorkout, date: new Date().toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) } })}>
+              onClick={() => {
+                const currentWorkout = workouts.find(workout => {
+                  if (!workout.expiration_date) return true;
+                  return new Date(workout.expiration_date) >= new Date();
+                });
+                navigate('/treino-do-dia', { 
+                  state: { 
+                    workoutDays: todaysWorkout, 
+                    date: new Date().toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+                    workoutId: currentWorkout?.id
+                  } 
+                });
+              }}>
           <CardHeader>
             <CardTitle className="flex items-center text-xl">
               <Calendar className="h-6 w-6 mr-3 text-primary" />

@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Eye, EyeOff, User, Mail } from 'lucide-react';
+import { PlayFitLogo } from '@/components/ui/playfit-logo';
 
 interface RegisterProps {
   onSwitchToLogin: () => void;
@@ -73,7 +74,7 @@ const Register = ({ onSwitchToLogin }: RegisterProps) => {
         <Card className="w-full max-w-md shadow-xl">
           <CardHeader className="space-y-2 text-center">
             <div className="mx-auto w-16 h-16 gradient-bg rounded-full flex items-center justify-center mb-4">
-              <span className="text-2xl font-bold text-primary-foreground">💪</span>
+              <PlayFitLogo size="lg" className="text-primary-foreground" />
             </div>
             <CardTitle className="text-2xl font-bold">Criar Conta</CardTitle>
             <CardDescription>
@@ -216,7 +217,7 @@ const Register = ({ onSwitchToLogin }: RegisterProps) => {
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="space-y-2 text-center">
           <div className="mx-auto w-16 h-16 gradient-bg rounded-full flex items-center justify-center mb-4">
-            <span className="text-2xl font-bold text-primary-foreground">💪</span>
+            <PlayFitLogo size="lg" className="text-primary-foreground" />
           </div>
           <CardTitle className="text-2xl font-bold">Personalize seu treino</CardTitle>
           <CardDescription>

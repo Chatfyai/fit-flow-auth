@@ -17,33 +17,22 @@ export const PlayFitLogo: React.FC<PlayFitLogoProps> = ({
 
   return (
     <svg
-      viewBox="0 0 40 40"
-      fill="none"
+      viewBox="0 0 100 100"
       xmlns="http://www.w3.org/2000/svg"
       className={`${sizeClasses[size]} ${className}`}
     >
-      <defs>
-        <linearGradient id="yellowGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#facc15" />
-          <stop offset="50%" stopColor="#eab308" />
-          <stop offset="100%" stopColor="#ca8a04" />
-        </linearGradient>
-      </defs>
-      
-      {/* Botão Play ocupando todo o espaço */}
-      <path
-        d="M8 6L8 34L32 20L8 6Z"
-        fill="url(#yellowGradient)"
-        stroke="url(#yellowGradient)"
-        strokeWidth="1"
-        strokeLinejoin="round"
-      />
-      
-      {/* Sombra interna para profundidade */}
-      <path
-        d="M12 12L12 28L28 20L12 12Z"
-        fill="#fbbf24"
-        opacity="0.8"
+      {/* 
+        Triângulo Play Suave - baseado no design fornecido
+        Os pontos foram ajustados para acomodar o efeito de bordas arredondadas
+        stroke-linejoin="round" arredonda os cantos onde as linhas se encontram
+        A espessura do stroke controla o raio do arredondamento
+      */}
+      <polygon 
+        points="20,15 85,50 20,85"
+        fill="#facc15"
+        stroke="#facc15"
+        strokeWidth="15"
+        strokeLinejoin="round" 
       />
     </svg>
   );

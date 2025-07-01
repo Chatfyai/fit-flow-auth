@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Eye, EyeOff, Mail } from 'lucide-react';
+import { PlayFitLogo } from '@/components/ui/playfit-logo';
 
 interface LoginProps {
   onSwitchToRegister: () => void;
@@ -36,7 +37,7 @@ const Login = ({ onSwitchToRegister }: LoginProps) => {
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="space-y-2 text-center">
           <div className="mx-auto w-16 h-16 gradient-bg rounded-full flex items-center justify-center mb-4">
-            <span className="text-2xl font-bold text-primary-foreground">💪</span>
+            <PlayFitLogo size="lg" className="text-primary-foreground" />
           </div>
           <CardTitle className="text-2xl font-bold">Bem-vindo de volta!</CardTitle>
           <CardDescription>

@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calendar, ArrowLeft, CalendarDays, Zap } from 'lucide-react';
+import { Scale, ArrowLeft, Calculator, Zap } from 'lucide-react';
 import { BottomNavigation } from '@/components/ui/bottom-navigation';
 
 const Agenda = () => {
@@ -24,9 +24,9 @@ const Agenda = () => {
             </Button>
             <div className="flex items-center">
               <div className="w-8 h-8 bg-gray-100 rounded-xl flex items-center justify-center mr-3">
-                <Calendar className="h-4 w-4 text-gray-600" />
+                <Scale className="h-4 w-4 text-gray-600" />
               </div>
-              <h1 className="text-xl font-bold text-gray-900">Agenda</h1>
+              <h1 className="text-xl font-bold text-gray-900">Calculadora IMC</h1>
             </div>
           </div>
         </div>
@@ -38,13 +38,13 @@ const Agenda = () => {
           <Card className="w-full max-w-md text-center">
             <CardHeader className="pb-4">
               <div className="w-20 h-20 bg-gradient-to-br from-primary/20 to-accent/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <CalendarDays className="h-10 w-10 text-primary" />
+                <Scale className="h-10 w-10 text-primary" />
               </div>
               <CardTitle className="text-2xl font-bold text-gray-900">
-                Agenda de Treinos
+                Calculadora de IMC
               </CardTitle>
               <CardDescription className="text-base text-gray-600">
-                Organize e acompanhe seus treinos
+                Calcule seu Índice de Massa Corporal
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -59,11 +59,11 @@ const Agenda = () => {
                     Estamos trabalhando para trazer em breve recursos como:
                   </p>
                   <ul className="text-sm text-yellow-700 mt-3 space-y-1">
-                    <li>• Calendário interativo de treinos</li>
-                    <li>• Agendamento de sessões</li>
-                    <li>• Lembretes personalizados</li>
-                    <li>• Visualização mensal e semanal</li>
-                    <li>• Integração com metas pessoais</li>
+                    <li>• Calculadora de IMC interativa</li>
+                    <li>• Histórico de medições</li>
+                    <li>• Gráficos de evolução</li>
+                    <li>• Classificação de peso ideal</li>
+                    <li>• Dicas personalizadas de saúde</li>
                   </ul>
                 </div>
                 
