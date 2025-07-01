@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -142,7 +142,12 @@ function SetCard({ exerciseName, setNumber, repetitions, variation, restTime, on
               </h4>
               <p className="text-sm text-muted-foreground">
                 {repetitions} repetições
-                {variation && ` • ${variation}`}
+                {variation && (
+                  <>
+                    {' • '}
+                    <span className="text-red-600 font-medium">{variation}</span>
+                  </>
+                )}
               </p>
             </div>
             {typeof restTime === 'number' && restTime > 0 && isStarted && !isCompleted && (
@@ -233,7 +238,12 @@ function ExerciseCard({ exercise, onSetComplete, onSetStart, completedSets, star
               </CardTitle>
               <CardDescription>
                 {getExerciseDisplay()}
-                {exercise.variation && ` • ${exercise.variation}`}
+                {exercise.variation && (
+                  <>
+                    {' • '}
+                    <span className="text-red-600 font-medium">{exercise.variation}</span>
+                  </>
+                )}
                 {completedCount > 0 && ` • ${completedCount}/${totalSets} séries concluídas`}
               </CardDescription>
             </div>
@@ -286,6 +296,12 @@ const TodaysWorkout = () => {
   
   // Estado para controlar o loading do salvamento da sessão
   const [isSavingSession, setIsSavingSession] = useState(false);
+  
+  // Estados para controlar scroll e exibição da div fixa
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [showFixedProgress, setShowFixedProgress] = useState(false);
+  const [showFaltaPouco, setShowFaltaPouco] = useState(true);
+  const [faltaPoucoAlreadyShown, setFaltaPoucoAlreadyShown] = useState(false);
 
   // Função para obter a chave do localStorage baseada na data atual
   const getStorageKey = () => {
@@ -318,24 +334,29 @@ const TodaysWorkout = () => {
     return {};
   };
 
-  // Função para limpar progressos de dias anteriores
+  // Função para limpar progressos de dias anteriores (SOMENTE localStorage, não afeta banco de dados)
   const cleanOldProgress = () => {
     try {
       const today = new Date().toISOString().split('T')[0];
       Object.keys(localStorage).forEach(key => {
         if (key.startsWith('workout_progress_') && !key.includes(today)) {
-          localStorage.removeItem(key);
-          console.log('🗑️ Progresso antigo removido:', key);
+          // Verificar se há progresso não salvo antes de remover
+          const progressData = localStorage.getItem(key);
+          if (progressData) {
+            console.log('🗑️ Progresso antigo encontrado (será mantido por segurança):', key);
+            // Não remover automaticamente - deixar o usuário decidir
+            // localStorage.removeItem(key);
+          }
         }
       });
     } catch (error) {
-      console.error('Erro ao limpar progresso antigo:', error);
+      console.error('Erro ao verificar progresso antigo:', error);
     }
   };
 
      // Carregar progresso salvo quando o componente montar
    React.useEffect(() => {
-     cleanOldProgress(); // Limpa progressos antigos
+     cleanOldProgress(); // Verifica progressos antigos (mas não remove automaticamente)
      
      // Primeiro inicializar todos os exercícios
      if (workoutDays && workoutDays.length > 0) {
@@ -384,6 +405,8 @@ const TodaysWorkout = () => {
      return () => window.removeEventListener('beforeunload', handleBeforeUnload);
    }, [exerciseSets]);
 
+
+
   // Função para controlar expansão de exercícios (apenas um por vez)
   const handleExerciseToggle = (exerciseId: string) => {
     setExpandedExerciseId(prevExpanded => 
@@ -416,6 +439,9 @@ const TodaysWorkout = () => {
     
     setExerciseSets(newExerciseSets);
     saveProgressToStorage(newExerciseSets); // Salva automaticamente
+    
+    // Salvar progresso parcial no banco de dados a cada série completada
+    savePartialProgress(newExerciseSets);
   };
 
   const handleSetStart = (exerciseId: string, setIndex: number) => {
@@ -448,6 +474,96 @@ const TodaysWorkout = () => {
 
   const progressPercentage = totalSets > 0 ? (completedSets / totalSets) * 100 : 0;
 
+  // Controlar scroll e exibição da div fixa
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const scrollThreshold = 200; // Pixels scrollados para considerar como "scrolled"
+      
+      setIsScrolled(scrollTop > scrollThreshold);
+      
+      // Mostrar div fixa apenas se progresso >= 70% e usuário scrollou
+      const shouldShow = progressPercentage >= 70 && scrollTop > scrollThreshold;
+      setShowFixedProgress(shouldShow);
+      
+      // Mostrar "Falta pouco!" apenas na primeira vez
+      if (shouldShow && !faltaPoucoAlreadyShown) {
+        setShowFaltaPouco(true);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [progressPercentage, faltaPoucoAlreadyShown]);
+
+  // Timer para mudar de "Falta pouco!" para "Progresso do Treino"
+  useEffect(() => {
+    if (showFixedProgress && showFaltaPouco && !faltaPoucoAlreadyShown) {
+      const timer = setTimeout(() => {
+        setShowFaltaPouco(false);
+        setFaltaPoucoAlreadyShown(true);
+      }, 3000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [showFixedProgress, showFaltaPouco, faltaPoucoAlreadyShown]);
+
+  // Se "Falta pouco!" já foi mostrado, sempre mostrar "Progresso do Treino"
+  useEffect(() => {
+    if (showFixedProgress && faltaPoucoAlreadyShown) {
+      setShowFaltaPouco(false);
+    }
+  }, [showFixedProgress, faltaPoucoAlreadyShown]);
+
+  // Função para salvar progresso parcial no banco de dados
+  const savePartialProgress = async (currentExerciseSets: typeof exerciseSets) => {
+    if (!user) return;
+    
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const currentCompletedSets = Object.values(currentExerciseSets).reduce((total, exercise) => {
+        return total + exercise.completed.filter(Boolean).length;
+      }, 0);
+      
+      // Só salvar se houver progresso significativo (pelo menos 1 série completa)
+      if (currentCompletedSets === 0) return;
+      
+      // Verificar se já existe uma sessão para hoje
+      const { data: existingSession } = await supabase
+        .from('workout_sessions')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('date', today)
+        .maybeSingle();
+
+      if (existingSession) {
+        // Atualizar sessão existente com progresso parcial
+        await supabase
+          .from('workout_sessions')
+          .update({
+            workout_id: workoutId || null,
+            notes: `Progresso: ${currentCompletedSets}/${totalSets} séries concluídas`,
+            duration: Math.floor((Date.now() - new Date().setHours(0,0,0,0)) / 60000)
+          })
+          .eq('id', existingSession.id);
+      } else {
+        // Criar nova sessão com progresso parcial
+        await supabase.from('workout_sessions').insert({
+          user_id: user.id,
+          workout_id: workoutId || null,
+          date: today,
+          duration: Math.floor((Date.now() - new Date().setHours(0,0,0,0)) / 60000),
+          notes: `Progresso: ${currentCompletedSets}/${totalSets} séries concluídas`
+        });
+      }
+      
+      console.log(`💾 Progresso parcial salvo: ${currentCompletedSets}/${totalSets} séries`);
+    } catch (error) {
+      console.error('Erro ao salvar progresso parcial:', error);
+      // Não mostrar toast para não incomodar o usuário durante o treino
+    }
+  };
+
   // Função para salvar a sessão de treino no banco de dados
   const saveWorkoutSession = async () => {
     if (!user) {
@@ -465,21 +581,26 @@ const TodaysWorkout = () => {
       const today = new Date().toISOString().split('T')[0];
       
       // Verificar se já existe uma sessão para hoje
-      const { data: existingSession } = await supabase
+      const { data: existingSession, error: selectError } = await supabase
         .from('workout_sessions')
-        .select('id')
+        .select('id, notes')
         .eq('user_id', user.id)
         .eq('date', today)
-        .single();
+        .maybeSingle(); // Use maybeSingle() para evitar erro se não encontrar
+
+      if (selectError) {
+        console.error('❌ Erro ao verificar sessão existente:', selectError);
+      }
 
       if (existingSession) {
-        console.log('⚠️ Sessão já exists para hoje, atualizando...');
+        console.log('⚠️ Sessão já existe para hoje, atualizando...', existingSession);
         
         const { data, error } = await supabase
           .from('workout_sessions')
           .update({
             workout_id: workoutId || null,
-            notes: `Treino concluído com ${completedSets}/${totalSets} séries`
+            notes: `Treino concluído com ${completedSets}/${totalSets} séries`,
+            duration: Math.floor((Date.now() - new Date().setHours(0,0,0,0)) / 60000) // Duração aproximada em minutos
           })
           .eq('id', existingSession.id)
           .select();
@@ -494,13 +615,13 @@ const TodaysWorkout = () => {
           return false;
         }
 
-                 console.log('✅ Sessão atualizada com sucesso:', data);
-         
-         // Limpar o progresso salvo localmente após atualizar com sucesso
-         localStorage.removeItem(getStorageKey());
-         console.log('🗑️ Progresso local limpo após atualização');
-         
-         return true;
+        console.log('✅ Sessão atualizada com sucesso:', data);
+        
+        // Limpar o progresso salvo localmente após atualizar com sucesso
+        localStorage.removeItem(getStorageKey());
+        console.log('🗑️ Progresso local limpo após atualização');
+        
+        return true;
       }
 
       console.log('🏋️ Salvando nova sessão de treino...', {
@@ -515,7 +636,7 @@ const TodaysWorkout = () => {
         user_id: user.id,
         workout_id: workoutId || null,
         date: today, // Formato YYYY-MM-DD
-        duration: null, // Pode ser calculado se necessário
+        duration: Math.floor((Date.now() - new Date().setHours(0,0,0,0)) / 60000), // Duração aproximada em minutos
         notes: `Treino concluído com ${completedSets}/${totalSets} séries`
       }).select();
 
@@ -529,13 +650,13 @@ const TodaysWorkout = () => {
         return false;
       }
 
-              console.log('✅ Sessão salva com sucesso:', data);
-        
-        // Limpar o progresso salvo localmente após salvar com sucesso
-        localStorage.removeItem(getStorageKey());
-        console.log('🗑️ Progresso local limpo após conclusão');
-        
-        return true;
+      console.log('✅ Sessão salva com sucesso:', data);
+      
+      // Limpar o progresso salvo localmente após salvar com sucesso
+      localStorage.removeItem(getStorageKey());
+      console.log('🗑️ Progresso local limpo após conclusão');
+      
+      return true;
     } catch (error) {
       console.error('❌ Erro inesperado ao salvar sessão:', error);
       toast({
@@ -646,6 +767,41 @@ const TodaysWorkout = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 to-accent/10 py-8 px-4 pb-20">
+      {/* Fixed Progress Bar para progresso >= 70% */}
+      {showFixedProgress && (
+        <div className="fixed top-0 left-0 right-0 z-50 transition-all duration-300">
+          <div className="w-full max-w-4xl mx-auto px-4 py-6">
+            <Card className="rounded-2xl text-card-foreground transition-all duration-300 ease-out hover:shadow-xl hover:scale-[1.01] bg-white/95 backdrop-blur-md shadow-lg border border-gray-200">
+              <CardContent className="py-4">
+                <div className="space-y-3">
+                  <div className="flex justify-between text-sm font-medium">
+                    <span>
+                      {showFaltaPouco ? (
+                        <span className="text-green-600">Falta pouco!</span>
+                      ) : (
+                        'Progresso do Treino'
+                      )}
+                    </span>
+                    <span>{completedSets}/{totalSets} séries</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 bg-gray-200 rounded-full h-3">
+                      <div 
+                        className="gradient-bg h-3 rounded-full transition-all duration-500"
+                        style={{ width: `${progressPercentage}%` }}
+                      />
+                    </div>
+                    <div className="text-sm font-bold text-primary min-w-[60px] text-right">
+                      {Math.round(progressPercentage)}%
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
+      
       <div className="w-full max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center mb-6">
@@ -660,10 +816,10 @@ const TodaysWorkout = () => {
           </div>
         </div>
 
-        {/* Progress Bar - Sticky */}
+        {/* Progress Bar - Always in same position */}
         {totalSets > 0 && (
-          <div className="sticky top-0 z-40 mb-6">
-            <Card className="bg-white/95 backdrop-blur-md shadow-lg border border-gray-200">
+          <div className="mb-6">
+            <Card className="rounded-2xl text-card-foreground transition-all duration-300 ease-out hover:shadow-xl hover:scale-[1.01] bg-white/95 backdrop-blur-md shadow-lg border border-gray-200">
               <CardContent className="py-4">
                 <div className="space-y-3">
                   <div className="flex justify-between text-sm font-medium">

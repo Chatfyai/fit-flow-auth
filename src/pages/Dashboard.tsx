@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Activity, Calendar, TrendingUp, LogOut, Dumbbell, Clock, Plus, User, Edit2 } from 'lucide-react';
+import { Activity, Calendar, TrendingUp, LogOut, Dumbbell, Clock, Plus, User, Edit2, Trophy } from 'lucide-react';
 import { Exercise, WorkoutDay, WeeklySchedule, Workout } from '@/types/workout';
 import { BottomNavigation } from '@/components/ui/bottom-navigation';
 import { ProgressIndicator, LoadingSpinner } from '@/components/ui/progress-indicator';
@@ -14,8 +14,9 @@ import { PlayFitLogo } from '@/components/ui/playfit-logo';
 interface WorkoutSession {
   id: string;
   date: string;
-  duration: number;
-  workout_id: string;
+  duration: number | null;
+  workout_id: string | null;
+  notes?: string;
 }
 
 const Dashboard = () => {
@@ -26,25 +27,26 @@ const Dashboard = () => {
   const [todaysWorkout, setTodaysWorkout] = useState<WorkoutDay[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (user) {
-      fetchData();
-    }
-  }, [user]);
-
   const fetchData = async () => {
     try {
-      // Fetch workout sessions
+      // Calcular primeiro e último dia do mês atual
+      const today = new Date();
+      const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+      const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      
+      // Fetch workout sessions do mês atual (sem limit para pegar todos os treinos)
       const { data: sessionsData, error: sessionsError } = await supabase
         .from('workout_sessions')
         .select('*')
-        .order('date', { ascending: false })
-        .limit(7);
+        .gte('date', firstDayOfMonth.toISOString())
+        .lte('date', lastDayOfMonth.toISOString())
+        .order('date', { ascending: false });
 
       if (sessionsError) {
         console.error('Error fetching workout sessions:', sessionsError);
       } else {
         setWorkoutSessions(sessionsData || []);
+        console.log('📅 Sessões do mês carregadas:', sessionsData?.length || 0);
       }
 
       // Fetch workouts
@@ -75,6 +77,37 @@ const Dashboard = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (user) {
+      fetchData();
+    }
+  }, [user]);
+
+  // Atualizar dados automaticamente quando voltar para o dashboard
+  useEffect(() => {
+    const handleFocus = () => {
+      if (user) {
+        console.log('🔄 Atualizando dados ao retornar para a página...');
+        fetchData();
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden && user) {
+        console.log('🔄 Página ficou visível, atualizando dados...');
+        fetchData();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [user]);
 
   const calculateTodaysWorkout = (workouts: Workout[]) => {
     const today = new Date();
@@ -134,7 +167,21 @@ const Dashboard = () => {
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(startOfWeek.getDate() + 6); // Fim da semana (sábado)
     endOfWeek.setHours(23, 59, 59, 999);
-    return sessionDate >= startOfWeek && sessionDate <= endOfWeek;
+    
+    const isInThisWeek = sessionDate >= startOfWeek && sessionDate <= endOfWeek;
+    
+    // Debug: Log das sessões para verificar se estão sendo contadas corretamente
+    if (isInThisWeek) {
+      console.log('📊 Sessão desta semana encontrada:', {
+        date: session.date,
+        sessionDate: sessionDate.toLocaleDateString('pt-BR'),
+        startOfWeek: startOfWeek.toLocaleDateString('pt-BR'),
+        endOfWeek: endOfWeek.toLocaleDateString('pt-BR'),
+        workout_id: session.workout_id
+      });
+    }
+    
+    return isInThisWeek;
   });
 
   // Calcular quantos dias da semana estão programados para treinar
@@ -156,9 +203,57 @@ const Dashboard = () => {
     return daysWithWorkouts || 3; // Fallback se não houver dias programados
   };
 
+  // Função para buscar a última meta alcançada
+  const getLastCompletedGoal = () => {
+    try {
+      const savedGoals = localStorage.getItem('user_goals');
+      if (!savedGoals) return null;
+      
+      const goals = JSON.parse(savedGoals);
+      const completedGoals = goals.filter((goal: any) => goal.completed);
+      
+      if (completedGoals.length === 0) return null;
+      
+      // Ordenar por data de conclusão (mais recente primeiro)
+      const lastCompleted = completedGoals.sort((a: any, b: any) => {
+        const dateA = a.completedAt ? new Date(a.completedAt).getTime() : new Date(a.id).getTime();
+        const dateB = b.completedAt ? new Date(b.completedAt).getTime() : new Date(b.id).getTime();
+        return dateB - dateA;
+      })[0];
+      
+      return lastCompleted;
+    } catch (error) {
+      console.error('Erro ao buscar última meta alcançada:', error);
+      return null;
+    }
+  };
+
+  // Mensagens motivacionais aleatórias
+  const getMotivationalMessage = () => {
+    const messages = [
+      "Parabéns! Continue assim! 🔥",
+      "Você está arrasando! 💪",
+      "Meta conquistada com sucesso! 🎯",
+      "Seu esforço está valendo a pena! ⭐",
+      "Conquista desbloqueada! 🏆",
+      "Você é imparável! 🚀",
+      "Objetivo alcançado! Continue focado! 👏"
+    ];
+    return messages[Math.floor(Math.random() * messages.length)];
+  };
+
   const totalWorkouts = workoutSessions.length;
   const weeklyGoal = getWeeklyGoal();
   const progressPercentage = weeklyGoal > 0 ? Math.min((thisWeekSessions.length / weeklyGoal) * 100, 100) : 0;
+
+  // Debug: Log do progresso semanal
+  console.log('📈 Progresso Semanal:', {
+    thisWeekSessions: thisWeekSessions.length,
+    weeklyGoal,
+    progressPercentage: Math.round(progressPercentage),
+    totalSessions: totalWorkouts,
+    allSessions: workoutSessions.map(s => ({ date: s.date, workout_id: s.workout_id }))
+  });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 to-accent/10 pb-20">
@@ -236,27 +331,150 @@ const Dashboard = () => {
 
           <Card className="hover:shadow-xl transition-all duration-300 ease-out">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-              <CardTitle className="text-sm font-medium text-gray-700">Treinos Esta Semana</CardTitle>
-              <Activity className="h-5 w-5 text-primary" />
+              <CardTitle className="text-sm font-medium text-gray-700">Última Meta Alcançada</CardTitle>
+              <Trophy className="h-5 w-5 text-yellow-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-gray-900">{thisWeekSessions.length}</div>
-              <p className="text-xs text-gray-500 mt-1">
-                de {weeklyGoal} treinos planejados
-              </p>
+              {(() => {
+                const lastGoal = getLastCompletedGoal();
+                if (!lastGoal) {
+                  return (
+                    <>
+                      <div className="text-lg font-bold text-gray-900 mb-2">Nenhuma meta concluída</div>
+                      <p className="text-xs text-gray-500">
+                        Defina e alcance suas primeiras metas! 🎯
+                      </p>
+                    </>
+                  );
+                }
+                
+                const completedDate = lastGoal.completedAt ? new Date(lastGoal.completedAt) : new Date(lastGoal.id);
+                return (
+                  <>
+                    <div className="text-lg font-bold text-gray-900 mb-1">{lastGoal.title}</div>
+                    <p className="text-xs text-gray-500 mb-2">
+                      Concluída em {completedDate.toLocaleDateString('pt-BR')}
+                    </p>
+                    <p className="text-xs text-green-600 font-medium">
+                      {getMotivationalMessage()}
+                    </p>
+                  </>
+                );
+              })()}
             </CardContent>
           </Card>
 
           <Card className="hover:shadow-xl transition-all duration-300 ease-out">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-              <CardTitle className="text-sm font-medium text-gray-700">Planos Criados</CardTitle>
-              <Dumbbell className="h-5 w-5 text-primary" />
+              <CardTitle className="text-sm font-medium text-gray-700">Frequência do Mês</CardTitle>
+              <Calendar className="h-5 w-5 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-gray-900">{workouts.length}</div>
-              <p className="text-xs text-gray-500 mt-1">
-                planos de treino
-              </p>
+              {(() => {
+                const [tooltip, setTooltip] = React.useState<{show: boolean, x: number, y: number, content: string}>({
+                  show: false, x: 0, y: 0, content: ''
+                });
+
+                const today = new Date();
+                const month = today.getMonth();
+                const year = today.getFullYear();
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+                // Função para verificar se há treino registrado em uma data específica
+                const hasWorkoutOnDate = (dateString: string) => {
+                  const hasSession = workoutSessions.some(session => {
+                    const sessionDate = session.date.split('T')[0]; // Pega apenas a data (YYYY-MM-DD)
+                    return sessionDate === dateString;
+                  });
+                  
+                  // Debug log para acompanhar quais dias têm treino
+                  if (hasSession) {
+                    console.log(`✅ Treino encontrado para ${dateString}`);
+                  }
+                  
+                  return hasSession;
+                };
+
+                const showTooltip = (e: React.MouseEvent, day: number) => {
+                  const dayDate = new Date(year, month, day);
+                  const dateString = dayDate.toISOString().split('T')[0];
+                  const hasTrained = hasWorkoutOnDate(dateString);
+                  const status = hasTrained ? 'Treino concluído ✅' : 'Nenhum treino ⭕';
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  setTooltip({
+                    show: true,
+                    x: rect.left + window.scrollX,
+                    y: rect.bottom + window.scrollY + 5,
+                    content: `${dayDate.toLocaleDateString('pt-BR')}<br/>${status}`
+                  });
+                };
+
+                const hideTooltip = () => setTooltip(prev => ({ ...prev, show: false }));
+
+                // Debug: Mostrar todas as sessões do mês
+                console.log('📅 Todas as sessões do mês:', workoutSessions.map(s => ({
+                  date: s.date.split('T')[0],
+                  workout_id: s.workout_id
+                })));
+
+                return (
+                  <div className="space-y-4">
+                    <div className="flex flex-wrap gap-1 justify-center">
+                      {Array.from({ length: daysInMonth }, (_, i) => {
+                        const day = i + 1;
+                        const dayDate = new Date(year, month, day);
+                        const dateString = dayDate.toISOString().split('T')[0];
+                        const hasTrained = hasWorkoutOnDate(dateString);
+                        const isToday = day === today.getDate();
+                        
+                        // Só mostrar dias do passado e hoje (não dias futuros)
+                        const dayTimestamp = dayDate.getTime();
+                        const todayTimestamp = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+                        const isFutureDay = dayTimestamp > todayTimestamp;
+                        
+                        return (
+                          <div
+                            key={day}
+                            className={`w-5 h-5 rounded-sm transition-colors duration-150 ${
+                              isFutureDay 
+                                ? 'bg-gray-100 border border-gray-200' // Dias futuros
+                                : hasTrained 
+                                  ? 'bg-yellow-500' // Treinou - amarelo
+                                  : 'bg-gray-300'   // Não treinou - cinza
+                            } ${isToday ? 'border-2 border-yellow-600' : ''}`}
+                            onMouseEnter={(e) => showTooltip(e, day)}
+                            onMouseLeave={hideTooltip}
+                          />
+                        );
+                      })}
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex justify-center items-center gap-4 text-xs text-gray-500">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-sm bg-yellow-500"></div>
+                          <span>Treinou</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-sm bg-gray-300"></div>
+                          <span>Não Treinou</span>
+                        </div>
+                      </div>
+                      <div className="text-center text-xs text-gray-400">
+                        Total de treinos este mês: {workoutSessions.length}
+                      </div>
+                    </div>
+
+                    {tooltip.show && (
+                      <div 
+                        className="fixed bg-black text-white text-xs px-2 py-1 rounded-md shadow-lg pointer-events-none z-50"
+                        style={{ left: tooltip.x, top: tooltip.y }}
+                        dangerouslySetInnerHTML={{ __html: tooltip.content }}
+                      />
+                    )}
+                  </div>
+                );
+              })()}
             </CardContent>
           </Card>
         </div>

@@ -5,12 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogOverlay, DialogPortal } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   Target, 
   TrendingUp, 
@@ -28,7 +29,8 @@ import {
   X,
   FlameKindling,
   Apple,
-  Activity
+  Activity,
+  Trash2
 } from 'lucide-react';
 import { BottomNavigation } from '@/components/ui/bottom-navigation';
 
@@ -47,6 +49,7 @@ interface Goal {
   deadline: string;
   priority: 'high' | 'medium' | 'low';
   completed: boolean;
+  completedAt?: string;
   metadata?: Record<string, any>;
 }
 
@@ -217,6 +220,19 @@ const Goals = () => {
 
   const [showTemplates, setShowTemplates] = useState(false);
 
+  // Carregar metas do localStorage quando o componente montar
+  React.useEffect(() => {
+    const savedGoals = localStorage.getItem('user_goals');
+    if (savedGoals) {
+      try {
+        const parsedGoals = JSON.parse(savedGoals);
+        setGoals(parsedGoals);
+      } catch (error) {
+        console.error('Erro ao carregar metas do localStorage:', error);
+      }
+    }
+  }, []);
+
   const getCategoryIcon = (category: Goal['category']) => {
     switch (category) {
       case 'strength': return <Dumbbell className="h-4 w-4" />;
@@ -281,7 +297,12 @@ const Goals = () => {
       completed: false
     };
 
-    setGoals([...goals, goal]);
+    const updatedGoals = [...goals, goal];
+    setGoals(updatedGoals);
+    
+    // Salvar no localStorage
+    localStorage.setItem('user_goals', JSON.stringify(updatedGoals));
+    
     setShowCreateModal(false);
     setNewGoal({
       title: '',
@@ -306,17 +327,26 @@ const Goals = () => {
     const newValue = editingProgress[goalId];
     if (newValue === undefined) return;
 
-    setGoals(goals.map(goal => 
-      goal.id === goalId 
-        ? { 
-            ...goal, 
-            current: newValue,
-            completed: goal.goalType === 'time' 
-              ? newValue <= goal.target 
-              : newValue >= goal.target
-          }
-        : goal
-    ));
+    const updatedGoals = goals.map(goal => {
+      if (goal.id === goalId) {
+        const isCompleted = goal.goalType === 'time' 
+          ? newValue <= goal.target 
+          : newValue >= goal.target;
+        
+        return {
+          ...goal, 
+          current: newValue,
+          completed: isCompleted,
+          completedAt: isCompleted && !goal.completed ? new Date().toISOString() : goal.completedAt
+        };
+      }
+      return goal;
+    });
+    
+    setGoals(updatedGoals);
+    
+    // Salvar no localStorage
+    localStorage.setItem('user_goals', JSON.stringify(updatedGoals));
 
     // Adicionar ao histórico de progresso
     const progress: GoalProgress = {
@@ -347,6 +377,61 @@ const Goals = () => {
         });
       }
     }
+  };
+
+  const markGoalAsCompleted = (goalId: string) => {
+    const goal = goals.find(g => g.id === goalId);
+    if (!goal) return;
+
+    const completedDate = new Date().toISOString();
+
+    // Atualizar no estado local
+    setGoals(goals.map(g => 
+      g.id === goalId 
+        ? { ...g, completed: true, current: g.target, completedAt: completedDate }
+        : g
+    ));
+
+    // Salvar no localStorage para persistência local
+    const updatedGoals = goals.map(g => 
+      g.id === goalId 
+        ? { ...g, completed: true, current: g.target, completedAt: completedDate }
+        : g
+    );
+    localStorage.setItem('user_goals', JSON.stringify(updatedGoals));
+
+    toast({
+      title: "🎉 Meta Concluída!",
+      description: `Parabéns! Você concluiu a meta "${goal.title}".`,
+      className: 'bg-green-500 border-green-600 text-white shadow-lg',
+      style: {
+        backgroundColor: '#10b981',
+        borderColor: '#059669',
+        color: '#ffffff'
+      }
+    });
+  };
+
+  const deleteCompletedGoal = (goalId: string) => {
+    const goal = goals.find(g => g.id === goalId);
+    if (!goal) return;
+
+    const updatedGoals = goals.filter(g => g.id !== goalId);
+    setGoals(updatedGoals);
+    
+    // Salvar no localStorage
+    localStorage.setItem('user_goals', JSON.stringify(updatedGoals));
+
+    toast({
+      title: "Meta removida",
+      description: `A meta "${goal.title}" foi removida da lista.`,
+      className: 'bg-red-500 border-red-600 text-white shadow-lg',
+      style: {
+        backgroundColor: '#ef4444',
+        borderColor: '#dc2626',
+        color: '#ffffff'
+      }
+    });
   };
 
   const activeGoals = goals.filter(goal => !goal.completed);
@@ -391,197 +476,217 @@ const Goals = () => {
                 <p className="text-xs text-gray-500">{activeGoals.length} metas ativas</p>
               </div>
             </div>
-            <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
-              <DialogTrigger asChild>
-                <Button
-                  size="sm"
-                  className="gradient-bg text-white"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Nova Meta
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                  <DialogTitle>Criar Nova Meta</DialogTitle>
-                  <DialogDescription>
-                    Defina uma nova meta para acompanhar seu progresso
-                  </DialogDescription>
-                                 </DialogHeader>
-                 <div className="grid gap-4 py-4">
-                   {/* Templates Section */}
-                   <div className="grid gap-2">
-                     <div className="flex items-center justify-between">
-                       <Label>Templates de Metas</Label>
-                       <Button
-                         variant="ghost"
-                         size="sm"
-                         onClick={() => setShowTemplates(!showTemplates)}
-                       >
-                         {showTemplates ? 'Ocultar' : 'Ver Templates'}
-                       </Button>
-                     </div>
-                     {showTemplates && (
-                       <div className="grid grid-cols-2 gap-2">
-                         {goalTemplates.map((template, index) => (
-                           <Button
-                             key={index}
-                             variant="outline"
-                             size="sm"
-                             onClick={() => applyTemplate(template)}
-                             className="text-left justify-start h-auto p-2"
-                           >
-                             <div className="flex items-center gap-2">
-                               <div className={`p-1 rounded ${getCategoryColor(template.category)}`}>
-                                 {getCategoryIcon(template.category)}
-                               </div>
-                               <div>
-                                 <div className="font-medium text-xs">{template.title}</div>
-                                 <div className="text-xs text-gray-500 truncate">{template.description}</div>
-                               </div>
-                             </div>
-                           </Button>
-                         ))}
-                       </div>
-                     )}
-                   </div>
-                   
-                   <div className="grid gap-2">
-                     <Label htmlFor="title">Título da Meta</Label>
-                    <Input
-                      id="title"
-                      value={newGoal.title}
-                      onChange={(e) => setNewGoal({...newGoal, title: e.target.value})}
-                      placeholder="Ex: Correr 5km"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="description">Descrição</Label>
-                    <Textarea
-                      id="description"
-                      value={newGoal.description}
-                      onChange={(e) => setNewGoal({...newGoal, description: e.target.value})}
-                      placeholder="Descreva sua meta em detalhes..."
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="category">Categoria</Label>
-                      <Select value={newGoal.category} onValueChange={(value: Goal['category']) => setNewGoal({...newGoal, category: value})}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="strength">Força</SelectItem>
-                          <SelectItem value="cardio">Cardio</SelectItem>
-                          <SelectItem value="weight">Peso</SelectItem>
-                          <SelectItem value="endurance">Resistência</SelectItem>
-                          <SelectItem value="flexibility">Flexibilidade</SelectItem>
-                          <SelectItem value="nutrition">Nutrição</SelectItem>
-                          <SelectItem value="habit">Hábito</SelectItem>
-                          <SelectItem value="other">Outro</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="goalType">Tipo de Meta</Label>
-                      <Select value={newGoal.goalType} onValueChange={(value: Goal['goalType']) => setNewGoal({...newGoal, goalType: value})}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="numeric">Numérica</SelectItem>
-                          <SelectItem value="time">Tempo</SelectItem>
-                          <SelectItem value="frequency">Frequência</SelectItem>
-                          <SelectItem value="boolean">Sim/Não</SelectItem>
-                        </SelectContent>
-                      </Select>
+            <div></div>
+            {showCreateModal && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20" style={{ alignItems: 'center' }}>
+                <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col my-auto">
+                  {/* Header */}
+                  <div className="p-6 border-b border-gray-200">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h2 className="text-xl font-bold text-gray-900">Criar Nova Meta</h2>
+                        <p className="text-gray-600 mt-1">Defina uma nova meta para acompanhar seu progresso</p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowCreateModal(false)}
+                        className="rounded-xl"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
                   
-                  {newGoal.goalType === 'frequency' ? (
-                    <div className="grid grid-cols-2 gap-4">
+                  {/* Conteúdo com scroll */}
+                  <div className="flex-1 overflow-y-auto p-6">
+                    <div className="space-y-6">
+                      {/* Templates Section */}
                       <div className="grid gap-2">
-                        <Label htmlFor="frequencyTarget">Quantas vezes</Label>
+                        <div className="flex items-center justify-between">
+                          <Label>Templates de Metas</Label>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setShowTemplates(!showTemplates)}
+                            className="rounded-xl text-yellow-600 hover:bg-yellow-50"
+                          >
+                            {showTemplates ? 'Ocultar' : 'Ver Templates'}
+                          </Button>
+                        </div>
+                        {showTemplates && (
+                          <div className="grid grid-cols-1 gap-3">
+                            {goalTemplates.map((template, index) => (
+                              <Button
+                                key={index}
+                                variant="outline"
+                                size="sm"
+                                onClick={() => applyTemplate(template)}
+                                className="text-left justify-start h-auto p-4 bg-white border-gray-200 rounded-xl hover:bg-yellow-50 hover:border-yellow-300 transition-all duration-300 whitespace-normal"
+                              >
+                                <div className="flex items-start gap-3 w-full">
+                                  <div className={`p-2 rounded-lg flex-shrink-0 ${getCategoryColor(template.category)}`}>
+                                    {getCategoryIcon(template.category)}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="font-medium text-sm text-gray-900 mb-1">{template.title}</div>
+                                    <div className="text-sm text-gray-500 leading-relaxed">{template.description}</div>
+                                  </div>
+                                </div>
+                              </Button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="grid gap-2">
+                        <Label htmlFor="title">Título da Meta</Label>
                         <Input
-                          id="frequencyTarget"
-                          type="number"
-                          value={newGoal.frequencyTarget}
-                          onChange={(e) => setNewGoal({...newGoal, frequencyTarget: parseInt(e.target.value)})}
+                          id="title"
+                          value={newGoal.title}
+                          onChange={(e) => setNewGoal({...newGoal, title: e.target.value})}
+                          placeholder="Ex: Correr 5km"
+                          className="bg-white border-gray-200 rounded-xl focus:border-yellow-400 focus:ring-yellow-200"
                         />
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="frequencyPeriod">Período</Label>
-                        <Select value={newGoal.frequencyPeriod} onValueChange={(value: 'daily' | 'weekly' | 'monthly') => setNewGoal({...newGoal, frequencyPeriod: value})}>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="daily">Por dia</SelectItem>
-                            <SelectItem value="weekly">Por semana</SelectItem>
-                            <SelectItem value="monthly">Por mês</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <Label htmlFor="description">Descrição</Label>
+                        <Textarea
+                          id="description"
+                          value={newGoal.description}
+                          onChange={(e) => setNewGoal({...newGoal, description: e.target.value})}
+                          placeholder="Descreva sua meta em detalhes..."
+                          className="bg-white border-gray-200 rounded-xl focus:border-yellow-400 focus:ring-yellow-200"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="grid gap-2">
+                          <Label htmlFor="category">Categoria</Label>
+                          <Select value={newGoal.category} onValueChange={(value: Goal['category']) => setNewGoal({...newGoal, category: value})}>
+                            <SelectTrigger className="bg-white border-gray-200 rounded-xl">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-white border border-gray-200 shadow-xl rounded-xl">
+                              <SelectItem value="strength" className="hover:bg-yellow-50">Força</SelectItem>
+                              <SelectItem value="cardio" className="hover:bg-yellow-50">Cardio</SelectItem>
+                              <SelectItem value="weight" className="hover:bg-yellow-50">Peso</SelectItem>
+                              <SelectItem value="endurance" className="hover:bg-yellow-50">Resistência</SelectItem>
+                              <SelectItem value="flexibility" className="hover:bg-yellow-50">Flexibilidade</SelectItem>
+                              <SelectItem value="nutrition" className="hover:bg-yellow-50">Nutrição</SelectItem>
+                              <SelectItem value="habit" className="hover:bg-yellow-50">Hábito</SelectItem>
+                              <SelectItem value="other" className="hover:bg-yellow-50">Outro</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="grid gap-2">
+                          <Label htmlFor="goalType">Tipo de Meta</Label>
+                          <Select value={newGoal.goalType} onValueChange={(value: Goal['goalType']) => setNewGoal({...newGoal, goalType: value})}>
+                            <SelectTrigger className="bg-white border-gray-200 rounded-xl">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-white border border-gray-200 shadow-xl rounded-xl">
+                              <SelectItem value="numeric" className="hover:bg-yellow-50">Numérica</SelectItem>
+                              <SelectItem value="time" className="hover:bg-yellow-50">Tempo</SelectItem>
+                              <SelectItem value="frequency" className="hover:bg-yellow-50">Frequência</SelectItem>
+                              <SelectItem value="boolean" className="hover:bg-yellow-50">Sim/Não</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      
+                      {newGoal.goalType === 'frequency' ? (
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="grid gap-2">
+                            <Label htmlFor="frequencyTarget">Quantas vezes</Label>
+                            <Input
+                              id="frequencyTarget"
+                              type="number"
+                              value={newGoal.frequencyTarget}
+                              onChange={(e) => setNewGoal({...newGoal, frequencyTarget: parseInt(e.target.value)})}
+                              className="bg-white border-gray-200 rounded-xl focus:border-yellow-400 focus:ring-yellow-200"
+                            />
+                          </div>
+                          <div className="grid gap-2">
+                            <Label htmlFor="frequencyPeriod">Período</Label>
+                            <Select value={newGoal.frequencyPeriod} onValueChange={(value: 'daily' | 'weekly' | 'monthly') => setNewGoal({...newGoal, frequencyPeriod: value})}>
+                              <SelectTrigger className="bg-white border-gray-200 rounded-xl">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent className="bg-white border border-gray-200 shadow-xl rounded-xl">
+                                <SelectItem value="daily" className="hover:bg-yellow-50">Por dia</SelectItem>
+                                <SelectItem value="weekly" className="hover:bg-yellow-50">Por semana</SelectItem>
+                                <SelectItem value="monthly" className="hover:bg-yellow-50">Por mês</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="grid gap-2">
+                            <Label htmlFor="target">Meta</Label>
+                            <Input
+                              id="target"
+                              type="number"
+                              value={newGoal.target}
+                              onChange={(e) => setNewGoal({...newGoal, target: parseFloat(e.target.value)})}
+                              className="bg-white border-gray-200 rounded-xl focus:border-yellow-400 focus:ring-yellow-200"
+                            />
+                          </div>
+                          <div className="grid gap-2">
+                            <Label htmlFor="unit">Unidade</Label>
+                            <Input
+                              id="unit"
+                              value={newGoal.unit}
+                              onChange={(e) => setNewGoal({...newGoal, unit: e.target.value})}
+                              placeholder="kg, min, reps..."
+                              className="bg-white border-gray-200 rounded-xl focus:border-yellow-400 focus:ring-yellow-200"
+                            />
+                          </div>
+                        </div>
+                      )}
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="grid gap-2">
+                          <Label htmlFor="deadline">Prazo</Label>
+                          <Input
+                            id="deadline"
+                            type="date"
+                            value={newGoal.deadline}
+                            onChange={(e) => setNewGoal({...newGoal, deadline: e.target.value})}
+                            className="bg-white border-gray-200 rounded-xl focus:border-yellow-400 focus:ring-yellow-200"
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label htmlFor="priority">Prioridade</Label>
+                          <Select value={newGoal.priority} onValueChange={(value: Goal['priority']) => setNewGoal({...newGoal, priority: value})}>
+                            <SelectTrigger className="bg-white border-gray-200 rounded-xl">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-white border border-gray-200 shadow-xl rounded-xl">
+                              <SelectItem value="high" className="hover:bg-yellow-50">Alta</SelectItem>
+                              <SelectItem value="medium" className="hover:bg-yellow-50">Média</SelectItem>
+                              <SelectItem value="low" className="hover:bg-yellow-50">Baixa</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
                     </div>
-                  ) : (
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="grid gap-2">
-                        <Label htmlFor="target">Meta</Label>
-                        <Input
-                          id="target"
-                          type="number"
-                          value={newGoal.target}
-                          onChange={(e) => setNewGoal({...newGoal, target: parseFloat(e.target.value)})}
-                        />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="unit">Unidade</Label>
-                        <Input
-                          id="unit"
-                          value={newGoal.unit}
-                          onChange={(e) => setNewGoal({...newGoal, unit: e.target.value})}
-                          placeholder="kg, min, reps..."
-                        />
-                      </div>
-                    </div>
-                  )}
+                  </div>
                   
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="deadline">Prazo</Label>
-                      <Input
-                        id="deadline"
-                        type="date"
-                        value={newGoal.deadline}
-                        onChange={(e) => setNewGoal({...newGoal, deadline: e.target.value})}
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="priority">Prioridade</Label>
-                      <Select value={newGoal.priority} onValueChange={(value: Goal['priority']) => setNewGoal({...newGoal, priority: value})}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="high">Alta</SelectItem>
-                          <SelectItem value="medium">Média</SelectItem>
-                          <SelectItem value="low">Baixa</SelectItem>
-                        </SelectContent>
-                      </Select>
+                  {/* Footer com botões */}
+                  <div className="p-6 border-t border-gray-200">
+                    <div className="flex justify-end gap-2">
+                      <Button variant="outline" onClick={() => setShowCreateModal(false)} className="rounded-xl">
+                        Cancelar
+                      </Button>
+                      <Button onClick={createGoal} disabled={!newGoal.title} className="gradient-bg text-white font-semibold rounded-xl">
+                        Criar Meta
+                      </Button>
                     </div>
                   </div>
                 </div>
-                <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => setShowCreateModal(false)}>
-                    Cancelar
-                  </Button>
-                  <Button onClick={createGoal} disabled={!newGoal.title}>
-                    Criar Meta
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
+              </div>
+            )}
           </div>
         </div>
       </header>
@@ -597,8 +702,8 @@ const Goals = () => {
                   <p className="text-sm text-gray-600">Metas Ativas</p>
                   <p className="text-2xl font-bold text-gray-900">{activeGoals.length}</p>
                 </div>
-                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                  <Target className="h-6 w-6 text-blue-600" />
+                <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
+                  <Target className="h-6 w-6 text-yellow-600" />
                 </div>
               </div>
             </CardContent>
@@ -611,24 +716,22 @@ const Goals = () => {
                   <p className="text-sm text-gray-600">Concluídas</p>
                   <p className="text-2xl font-bold text-gray-900">{completedGoals.length}</p>
                 </div>
-                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                  <Trophy className="h-6 w-6 text-green-600" />
+                <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
+                  <Trophy className="h-6 w-6 text-yellow-600" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-all duration-300">
+          <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer" onClick={() => setShowCreateModal(true)}>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Taxa de Sucesso</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {goals.length > 0 ? Math.round((completedGoals.length / goals.length) * 100) : 0}%
-                  </p>
+                  <p className="text-sm text-gray-600">Nova Meta</p>
+                  <p className="text-sm font-bold text-gray-900">Criar meta</p>
                 </div>
-                <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
-                  <TrendingUp className="h-6 w-6 text-yellow-600" />
+                <div className="w-12 h-12 gradient-bg rounded-full flex items-center justify-center">
+                  <Plus className="h-6 w-6 text-white" />
                 </div>
               </div>
             </CardContent>
@@ -734,6 +837,16 @@ const Goals = () => {
                       </span>
                       <span>{Math.round(getProgress(goal))}% concluído</span>
                     </div>
+                    <div className="pt-2 border-t border-gray-100">
+                      <Button
+                        onClick={() => markGoalAsCompleted(goal.id)}
+                        className="w-full bg-green-600 hover:bg-green-700 text-white"
+                        size="sm"
+                      >
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Marcar como Concluída
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -762,17 +875,35 @@ const Goals = () => {
                           <CardDescription className="text-sm text-green-600">{goal.description}</CardDescription>
                         </div>
                       </div>
-                      <Badge className="bg-green-100 text-green-800">
-                        Concluída
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge className="bg-green-100 text-green-800">
+                          Concluída
+                        </Badge>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => deleteCompletedGoal(goal.id)}
+                          className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                          title="Remover meta"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="flex items-center justify-between text-sm text-green-700">
-                      <span>✅ Meta alcançada!</span>
-                      <span className="font-medium">
-                        {goal.current} {goal.unit}
-                      </span>
+                    <div className="space-y-2 text-sm text-green-700">
+                      <div className="flex items-center justify-between">
+                        <span>✅ Meta alcançada!</span>
+                        <span className="font-medium">
+                          {goal.current} {goal.unit}
+                        </span>
+                      </div>
+                      {goal.completedAt && (
+                        <div className="text-xs text-green-600">
+                          Concluída em {new Date(goal.completedAt).toLocaleDateString('pt-BR')}
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

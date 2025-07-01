@@ -317,9 +317,9 @@ const CreateWorkout = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/20 to-accent/20 pb-20">
+    <div className="min-h-screen bg-gradient-to-br from-primary/10 to-accent/10 pb-20">
       {/* Header */}
-      <header className="bg-white/90 backdrop-blur-sm border-b border-gray-200">
+      <header className="bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
@@ -350,9 +350,9 @@ const CreateWorkout = () => {
         ) : (
           <>
             {/* Nome do Treino */}
-        <Card className="mb-8 relative z-10">
+        <Card className="mb-8 rounded-2xl bg-white/95 backdrop-blur-md shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300 ease-out hover:scale-[1.01]">
           <CardHeader>
-            <CardTitle>Informações Básicas</CardTitle>
+            <CardTitle className="text-xl font-bold text-gray-900">Informações Básicas</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -368,7 +368,7 @@ const CreateWorkout = () => {
                       clearFieldError('workoutName');
                     }
                   }}
-                  className={fieldErrors.workoutName ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}
+                  className={`rounded-xl border-2 transition-all duration-300 ${fieldErrors.workoutName ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-gray-200 focus:border-yellow-400 focus:ring-yellow-200'}`}
                 />
                 {fieldErrors.workoutName && (
                   <p className="text-sm text-red-600 mt-1">Nome do treino é obrigatório</p>
@@ -379,12 +379,12 @@ const CreateWorkout = () => {
         </Card>
 
         {/* Treinos A, B, C, D, E */}
-        <Card className="mb-8 relative z-0">
+        <Card className="mb-8 rounded-2xl bg-white/95 backdrop-blur-md shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300 ease-out hover:scale-[1.01]">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle>Divisão de Treinos</CardTitle>
+              <CardTitle className="text-xl font-bold text-gray-900">Divisão de Treinos</CardTitle>
               {workoutDays.length < availableLetters.length && (
-                <Button onClick={addWorkoutDay} size="sm">
+                <Button onClick={addWorkoutDay} size="sm" className="gradient-bg text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all duration-300">
                   <Plus className="h-4 w-4 mr-2" />
                   Adicionar Treino
                 </Button>
@@ -401,7 +401,7 @@ const CreateWorkout = () => {
                   size="sm"
                   onClick={() => setActiveWorkoutTab(Math.max(0, activeWorkoutTab - 1))}
                   disabled={activeWorkoutTab === 0}
-                  className="h-9 w-9 p-0 flex-shrink-0"
+                  className="h-9 w-9 p-0 flex-shrink-0 rounded-xl border-2 border-gray-200 hover:border-yellow-300 hover:bg-yellow-50 transition-all duration-300"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
@@ -441,7 +441,7 @@ const CreateWorkout = () => {
                   size="sm"
                   onClick={() => setActiveWorkoutTab(Math.min(workoutDays.length - 1, activeWorkoutTab + 1))}
                   disabled={activeWorkoutTab === workoutDays.length - 1}
-                  className="h-9 w-9 p-0 flex-shrink-0"
+                  className="h-9 w-9 p-0 flex-shrink-0 rounded-xl border-2 border-gray-200 hover:border-yellow-300 hover:bg-yellow-50 transition-all duration-300"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
@@ -469,11 +469,11 @@ const CreateWorkout = () => {
 
             {/* Card do Treino Ativo */}
             {workoutDays[activeWorkoutTab] && (
-              <Card className="border-l-4 border-l-yellow-500">
+              <Card className="border-l-4 border-l-yellow-500 rounded-xl bg-gradient-to-r from-yellow-50/50 to-white shadow-md hover:shadow-lg transition-all duration-300">
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <span className="bg-yellow-500 text-black px-2 py-1 rounded-full text-sm font-bold">
+                    <CardTitle className="text-lg flex items-center gap-2 font-bold text-gray-900">
+                      <span className="bg-yellow-500 text-black px-3 py-2 rounded-xl text-sm font-bold shadow-md">
                         {workoutDays[activeWorkoutTab].letter}
                       </span>
                       Treino {workoutDays[activeWorkoutTab].letter}
@@ -489,6 +489,7 @@ const CreateWorkout = () => {
                             setActiveWorkoutTab(Math.max(0, workoutDays.length - 2));
                           }
                         }}
+                        className="rounded-xl hover:scale-105 transition-all duration-300"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -498,7 +499,7 @@ const CreateWorkout = () => {
                 <CardContent>
                   <div className="space-y-4">
                     {workoutDays[activeWorkoutTab].exercises.map((exercise, exerciseIndex) => (
-                      <div key={exercise.id} className="grid grid-cols-1 md:grid-cols-6 gap-4 p-4 border rounded-lg">
+                      <div key={exercise.id} className="grid grid-cols-1 md:grid-cols-6 gap-4 p-4 border border-gray-200 rounded-xl bg-gradient-to-r from-gray-50/50 to-white shadow-sm hover:shadow-md transition-all duration-300">
                         <div>
                           <Label>Nome do Exercício *</Label>
                           <Input
@@ -511,7 +512,7 @@ const CreateWorkout = () => {
                                 clearFieldError('exercise', exerciseKey);
                               }
                             }}
-                            className={fieldErrors.exercises[`${activeWorkoutTab}-${exerciseIndex}`]?.name ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}
+                            className={`rounded-xl border-2 transition-all duration-300 ${fieldErrors.exercises[`${activeWorkoutTab}-${exerciseIndex}`]?.name ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-gray-200 focus:border-yellow-400 focus:ring-yellow-200'}`}
                           />
                           {fieldErrors.exercises[`${activeWorkoutTab}-${exerciseIndex}`]?.name && (
                             <p className="text-xs text-red-600 mt-1">Nome é obrigatório</p>
@@ -530,7 +531,7 @@ const CreateWorkout = () => {
                                 clearFieldError('exercise', exerciseKey);
                               }
                             }}
-                            className={fieldErrors.exercises[`${activeWorkoutTab}-${exerciseIndex}`]?.series ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}
+                            className={`rounded-xl border-2 transition-all duration-300 ${fieldErrors.exercises[`${activeWorkoutTab}-${exerciseIndex}`]?.series ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-gray-200 focus:border-yellow-400 focus:ring-yellow-200'}`}
                           />
                           {fieldErrors.exercises[`${activeWorkoutTab}-${exerciseIndex}`]?.series && (
                             <p className="text-xs text-red-600 mt-1">Séries obrigatórias</p>
@@ -548,7 +549,7 @@ const CreateWorkout = () => {
                                 clearFieldError('exercise', exerciseKey);
                               }
                             }}
-                            className={fieldErrors.exercises[`${activeWorkoutTab}-${exerciseIndex}`]?.repetitions ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}
+                            className={`rounded-xl border-2 transition-all duration-300 ${fieldErrors.exercises[`${activeWorkoutTab}-${exerciseIndex}`]?.repetitions ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-gray-200 focus:border-yellow-400 focus:ring-yellow-200'}`}
                           />
                           {fieldErrors.exercises[`${activeWorkoutTab}-${exerciseIndex}`]?.repetitions && (
                             <p className="text-xs text-red-600 mt-1">Repetições obrigatórias</p>
@@ -560,6 +561,7 @@ const CreateWorkout = () => {
                             placeholder="Ex: Inclinado"
                             value={exercise.variation || ''}
                             onChange={(e) => updateExercise(activeWorkoutTab, exerciseIndex, 'variation', e.target.value)}
+                            className="rounded-xl border-2 border-gray-200 focus:border-yellow-400 focus:ring-yellow-200 transition-all duration-300"
                           />
                         </div>
                         <div>
@@ -569,6 +571,7 @@ const CreateWorkout = () => {
                             placeholder="60"
                             value={exercise.rest_time || ''}
                             onChange={(e) => updateExercise(activeWorkoutTab, exerciseIndex, 'rest_time', parseInt(e.target.value) || 0)}
+                            className="rounded-xl border-2 border-gray-200 focus:border-yellow-400 focus:ring-yellow-200 transition-all duration-300"
                           />
                         </div>
                         <div className="flex items-end">
@@ -576,7 +579,7 @@ const CreateWorkout = () => {
                             variant="destructive"
                             size="sm"
                             onClick={() => removeExercise(activeWorkoutTab, exerciseIndex)}
-                            className="w-full"
+                            className="w-full rounded-xl hover:scale-105 transition-all duration-300 shadow-md hover:shadow-lg"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -586,7 +589,7 @@ const CreateWorkout = () => {
                     <Button
                       variant="outline"
                       onClick={() => addExercise(activeWorkoutTab)}
-                      className="w-full"
+                      className="w-full rounded-xl border-2 border-yellow-300 text-yellow-700 hover:bg-yellow-50 hover:border-yellow-400 transition-all duration-300 font-semibold"
                     >
                       <Plus className="h-4 w-4 mr-2" />
                       Adicionar Exercício
@@ -599,10 +602,10 @@ const CreateWorkout = () => {
         </Card>
 
         {/* Distribuição Semanal */}
-        <Card className="mb-8 relative z-0">
+        <Card className="mb-8 rounded-2xl bg-white/95 backdrop-blur-md shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300 ease-out hover:scale-[1.01]">
           <CardHeader>
-            <CardTitle>Distribuição Semanal</CardTitle>
-            <p className="text-sm text-muted-foreground">
+            <CardTitle className="text-xl font-bold text-gray-900">Distribuição Semanal</CardTitle>
+            <p className="text-sm text-gray-600">
               Defina quais treinos serão realizados em cada dia da semana
             </p>
           </CardHeader>
@@ -616,10 +619,10 @@ const CreateWorkout = () => {
                     <Button
                       type="button"
                       variant={weeklySchedule[key].length === 0 ? "default" : "outline"}
-                      className={`w-full justify-start ${
+                      className={`w-full justify-start rounded-xl transition-all duration-300 ${
                         weeklySchedule[key].length === 0 
-                          ? "bg-gray-100 text-gray-700 border-gray-300" 
-                          : "hover:bg-gray-50"
+                          ? "bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200" 
+                          : "border-2 border-gray-200 hover:bg-gray-50 hover:border-gray-300"
                       }`}
                       onClick={() => updateWeeklySchedule(key, [])}
                     >
@@ -636,10 +639,10 @@ const CreateWorkout = () => {
                             type="button"
                             variant={isSelected ? "default" : "outline"}
                             size="sm"
-                            className={`${
+                            className={`rounded-xl border-2 transition-all duration-300 ${
                               isSelected 
-                                ? "gradient-bg text-white" 
-                                : "hover:bg-gray-50"
+                                ? "gradient-bg text-white border-yellow-400 shadow-md" 
+                                : "border-gray-200 hover:bg-yellow-50 hover:border-yellow-300"
                             }`}
                             onClick={() => {
                               const currentSchedule = weeklySchedule[key];
@@ -664,8 +667,8 @@ const CreateWorkout = () => {
                     
                     {/* Exibição dos treinos selecionados */}
                     {weeklySchedule[key].length > 0 && (
-                      <div className="mt-2 p-2 bg-gray-50 rounded-lg">
-                        <span className="text-sm text-gray-600">
+                      <div className="mt-2 p-3 bg-gradient-to-r from-yellow-50 to-gray-50 rounded-xl border border-yellow-200">
+                        <span className="text-sm text-gray-700 font-medium">
                           Treinos selecionados: {weeklySchedule[key].join(' + ')}
                         </span>
                       </div>
@@ -678,10 +681,10 @@ const CreateWorkout = () => {
         </Card>
 
         {/* Data de Vencimento */}
-        <Card className="mb-8 relative z-0">
+        <Card className="mb-8 rounded-2xl bg-white/95 backdrop-blur-md shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300 ease-out hover:scale-[1.01]">
           <CardHeader>
-            <CardTitle className="flex items-center">
-              <Calendar className="h-5 w-5 mr-2" />
+            <CardTitle className="flex items-center text-xl font-bold text-gray-900">
+              <Calendar className="h-5 w-5 mr-2 text-yellow-500" />
               Data de Vencimento *
             </CardTitle>
           </CardHeader>
@@ -695,7 +698,7 @@ const CreateWorkout = () => {
                   clearFieldError('expirationDate');
                 }
               }}
-              className={`max-w-xs ${fieldErrors.expirationDate ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
+              className={`max-w-xs rounded-xl border-2 transition-all duration-300 ${fieldErrors.expirationDate ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-gray-200 focus:border-yellow-400 focus:ring-yellow-200'}`}
             />
             {fieldErrors.expirationDate && (
               <p className="text-sm text-red-600 mt-2">Data de vencimento é obrigatória</p>
@@ -708,7 +711,7 @@ const CreateWorkout = () => {
           <Button
             onClick={handleCompleteWorkout}
             disabled={loading}
-            className="gradient-bg text-primary-foreground font-semibold px-8 py-3 text-lg"
+            className="gradient-bg text-primary-foreground font-semibold px-8 py-3 text-lg rounded-2xl shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 ease-out"
           >
             {loading ? 'Salvando...' : (isEditing ? 'Salvar Alterações' : 'Concluir Planejamento')}
           </Button>
