@@ -14,6 +14,7 @@ export interface Goal {
   deadline: string;
   priority: 'high' | 'medium' | 'low';
   completed: boolean;
+  completedAt?: string;
   metadata?: Record<string, any>;
   created_at?: string;
   updated_at?: string;
