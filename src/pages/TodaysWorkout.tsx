@@ -3,7 +3,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Clock, ArrowLeft, RotateCcw, CheckCircle, ChevronDown, ChevronUp, Play, Pause } from 'lucide-react';
+import { Clock, RotateCcw, CheckCircle, ChevronDown, ChevronUp, Play, Pause } from 'lucide-react';
+import { PlayFitLogo } from '@/components/ui/playfit-logo';
 import { useToast } from '@/hooks/use-toast';
 import { Exercise } from '@/types/workout';
 import { supabase } from '@/integrations/supabase/client';
@@ -805,11 +806,11 @@ const TodaysWorkout = () => {
       <div className="w-full max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center mb-6">
-          <Button variant="ghost" onClick={() => navigate(-1)} className="mr-4 hover:bg-gray-100 rounded-xl">
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
+          <div className="w-10 h-10 rounded-2xl flex items-center justify-center mr-4">
+            <PlayFitLogo size="md" className="text-yellow-500" />
+          </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Treino de Hoje</h1>
+            <h1 className="text-2xl font-bold text-gray-900">PlayFit</h1>
             <p className="text-gray-600">
               {date || new Date().toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </p>

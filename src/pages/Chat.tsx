@@ -2,8 +2,9 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Bot, ArrowLeft, MessageSquare, Zap } from 'lucide-react';
+import { Bot, MessageSquare, Zap } from 'lucide-react';
 import { BottomNavigation } from '@/components/ui/bottom-navigation';
+import { PlayFitLogo } from '@/components/ui/playfit-logo';
 
 const Chat = () => {
   const navigate = useNavigate();
@@ -14,19 +15,11 @@ const Chat = () => {
       <header className="bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center h-16">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate('/dashboard')}
-              className="mr-3 hover:bg-gray-100 rounded-xl"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
             <div className="flex items-center">
-              <div className="w-8 h-8 bg-gray-100 rounded-xl flex items-center justify-center mr-3">
-                <Bot className="h-4 w-4 text-gray-600" />
+              <div className="w-10 h-10 rounded-2xl flex items-center justify-center mr-3">
+                <PlayFitLogo size="md" className="text-yellow-500" />
               </div>
-              <h1 className="text-xl font-bold text-gray-900">IA Personal Trainer</h1>
+              <h1 className="text-xl font-bold text-gray-900">PlayFit</h1>
             </div>
           </div>
         </div>

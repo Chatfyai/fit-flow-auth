@@ -161,11 +161,17 @@ const Dashboard = () => {
   const thisWeekSessions = workoutSessions.filter(session => {
     const sessionDate = new Date(session.date);
     const today = new Date();
+    
+    // Calcular início da semana (segunda-feira)
     const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - today.getDay()); // Início da semana (domingo)
+    const dayOfWeek = today.getDay(); // 0 = domingo, 1 = segunda, etc.
+    const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Se for domingo, volta 6 dias; senão volta (dia - 1)
+    startOfWeek.setDate(today.getDate() - daysToSubtract);
     startOfWeek.setHours(0, 0, 0, 0);
+    
+    // Calcular fim da semana (domingo)
     const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(startOfWeek.getDate() + 6); // Fim da semana (sábado)
+    endOfWeek.setDate(startOfWeek.getDate() + 6); // Segunda + 6 dias = domingo
     endOfWeek.setHours(23, 59, 59, 999);
     
     const isInThisWeek = sessionDate >= startOfWeek && sessionDate <= endOfWeek;
@@ -175,8 +181,8 @@ const Dashboard = () => {
       console.log('📊 Sessão desta semana encontrada:', {
         date: session.date,
         sessionDate: sessionDate.toLocaleDateString('pt-BR'),
-        startOfWeek: startOfWeek.toLocaleDateString('pt-BR'),
-        endOfWeek: endOfWeek.toLocaleDateString('pt-BR'),
+        startOfWeek: `Segunda ${startOfWeek.toLocaleDateString('pt-BR')}`,
+        endOfWeek: `Domingo ${endOfWeek.toLocaleDateString('pt-BR')}`,
         workout_id: session.workout_id
       });
     }
@@ -206,7 +212,8 @@ const Dashboard = () => {
   // Função para buscar a última meta alcançada
   const getLastCompletedGoal = () => {
     try {
-      const savedGoals = localStorage.getItem('user_goals');
+      // Buscar da chave correta que inclui o ID do usuário
+      const savedGoals = localStorage.getItem(`user_goals_${user?.id || 'anonymous'}`);
       if (!savedGoals) return null;
       
       const goals = JSON.parse(savedGoals);

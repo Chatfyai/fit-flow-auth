@@ -21,7 +21,6 @@ import {
   Zap, 
   Trophy,
   Plus,
-  ArrowLeft,
   CheckCircle,
   Clock,
   Edit,
@@ -33,6 +32,7 @@ import {
   Trash2
 } from 'lucide-react';
 import { BottomNavigation } from '@/components/ui/bottom-navigation';
+import { PlayFitLogo } from '@/components/ui/playfit-logo';
 
 interface Goal {
   id: string;
@@ -66,80 +66,7 @@ const Goals = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const [goals, setGoals] = useState<Goal[]>([
-    {
-      id: '1',
-      title: 'Perder 5kg',
-      description: 'Reduzir peso corporal através de exercícios e dieta balanceada',
-      category: 'weight',
-      goalType: 'numeric',
-      target: 5,
-      current: 2.3,
-      unit: 'kg',
-      startDate: '2024-01-01',
-      deadline: '2024-03-15',
-      priority: 'high',
-      completed: false
-    },
-    {
-      id: '2',
-      title: 'Treinar 4x por semana',
-      description: 'Manter consistência nos treinos semanais',
-      category: 'habit',
-      goalType: 'frequency',
-      target: 4,
-      current: 3,
-      unit: 'treinos',
-      frequencyTarget: 4,
-      frequencyPeriod: 'weekly',
-      startDate: '2024-01-01',
-      deadline: '2024-12-31',
-      priority: 'high',
-      completed: false
-    },
-    {
-      id: '3',
-      title: 'Supino 80kg',
-      description: 'Aumentar carga máxima no supino reto',
-      category: 'strength',
-      goalType: 'numeric',
-      target: 80,
-      current: 65,
-      unit: 'kg',
-      startDate: '2024-01-01',
-      deadline: '2024-04-01',
-      priority: 'medium',
-      completed: false
-    },
-    {
-      id: '4',
-      title: 'Correr 5km em 25min',
-      description: 'Melhorar tempo na corrida de 5 quilômetros',
-      category: 'cardio',
-      goalType: 'time',
-      target: 25,
-      current: 28,
-      unit: 'min',
-      startDate: '2024-01-01',
-      deadline: '2024-03-30',
-      priority: 'medium',
-      completed: false
-    },
-    {
-      id: '5',
-      title: 'Flexões consecutivas',
-      description: 'Conseguir fazer 50 flexões sem parar',
-      category: 'endurance',
-      goalType: 'numeric',
-      target: 50,
-      current: 50,
-      unit: 'repetições',
-      startDate: '2024-01-01',
-      deadline: '2024-02-15',
-      priority: 'medium',
-      completed: true
-    }
-  ]);
+  const [goals, setGoals] = useState<Goal[]>([]);
 
   const [goalProgress, setGoalProgress] = useState<GoalProgress[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -220,18 +147,38 @@ const Goals = () => {
 
   const [showTemplates, setShowTemplates] = useState(false);
 
-  // Carregar metas do localStorage quando o componente montar
+  const [loading, setLoading] = useState(true);
+
+  // Carregar metas do usuário quando o componente montar
   React.useEffect(() => {
-    const savedGoals = localStorage.getItem('user_goals');
-    if (savedGoals) {
+    const loadGoals = async () => {
       try {
-        const parsedGoals = JSON.parse(savedGoals);
-        setGoals(parsedGoals);
+        setLoading(true);
+        
+        // Por enquanto usando localStorage, futuramente será Supabase
+        const savedGoals = localStorage.getItem(`user_goals_${user?.id || 'anonymous'}`);
+        if (savedGoals) {
+          const parsedGoals = JSON.parse(savedGoals);
+          setGoals(parsedGoals);
+        }
       } catch (error) {
-        console.error('Erro ao carregar metas do localStorage:', error);
+        console.error('Erro ao carregar metas:', error);
+        toast({
+          title: "Erro ao carregar metas",
+          description: "Não foi possível carregar suas metas salvas.",
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
       }
+    };
+
+    if (user) {
+      loadGoals();
+    } else {
+      setLoading(false);
     }
-  }, []);
+  }, [user]);
 
   const getCategoryIcon = (category: Goal['category']) => {
     switch (category) {
@@ -300,8 +247,8 @@ const Goals = () => {
     const updatedGoals = [...goals, goal];
     setGoals(updatedGoals);
     
-    // Salvar no localStorage
-    localStorage.setItem('user_goals', JSON.stringify(updatedGoals));
+    // Salvar no localStorage (futuramente será Supabase)
+    localStorage.setItem(`user_goals_${user?.id || 'anonymous'}`, JSON.stringify(updatedGoals));
     
     setShowCreateModal(false);
     setNewGoal({
@@ -345,8 +292,8 @@ const Goals = () => {
     
     setGoals(updatedGoals);
     
-    // Salvar no localStorage
-    localStorage.setItem('user_goals', JSON.stringify(updatedGoals));
+    // Salvar no localStorage (futuramente será Supabase)
+    localStorage.setItem(`user_goals_${user?.id || 'anonymous'}`, JSON.stringify(updatedGoals));
 
     // Adicionar ao histórico de progresso
     const progress: GoalProgress = {
@@ -392,13 +339,13 @@ const Goals = () => {
         : g
     ));
 
-    // Salvar no localStorage para persistência local
+    // Salvar no localStorage para persistência local (futuramente será Supabase)
     const updatedGoals = goals.map(g => 
       g.id === goalId 
         ? { ...g, completed: true, current: g.target, completedAt: completedDate }
         : g
     );
-    localStorage.setItem('user_goals', JSON.stringify(updatedGoals));
+    localStorage.setItem(`user_goals_${user?.id || 'anonymous'}`, JSON.stringify(updatedGoals));
 
     toast({
       title: "🎉 Meta Concluída!",
@@ -419,8 +366,8 @@ const Goals = () => {
     const updatedGoals = goals.filter(g => g.id !== goalId);
     setGoals(updatedGoals);
     
-    // Salvar no localStorage
-    localStorage.setItem('user_goals', JSON.stringify(updatedGoals));
+    // Salvar no localStorage (futuramente será Supabase)
+    localStorage.setItem(`user_goals_${user?.id || 'anonymous'}`, JSON.stringify(updatedGoals));
 
     toast({
       title: "Meta removida",
@@ -460,21 +407,10 @@ const Goals = () => {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate('/dashboard')}
-                className="mr-3 hover:bg-gray-100"
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-              <div className="w-10 h-10 gradient-bg rounded-full flex items-center justify-center mr-3 shadow-md">
-                <Target className="h-6 w-6 text-white" />
+              <div className="w-10 h-10 rounded-2xl flex items-center justify-center mr-3">
+                <PlayFitLogo size="md" className="text-yellow-500" />
               </div>
-              <div>
-                <h1 className="text-lg font-bold text-gray-900">Minhas Metas</h1>
-                <p className="text-xs text-gray-500">{activeGoals.length} metas ativas</p>
-              </div>
+              <h1 className="text-xl font-bold text-gray-900">PlayFit</h1>
             </div>
             <div></div>
             {showCreateModal && (
@@ -745,20 +681,40 @@ const Goals = () => {
               <Target className="h-5 w-5 mr-2 text-primary" />
               Metas Ativas
             </h2>
-            <div className="flex items-center gap-2">
+
+          </div>
+          {loading ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <Card key={i} className="animate-pulse">
+                  <CardContent className="p-6">
+                    <div className="flex items-center space-x-4">
+                      <div className="w-12 h-12 bg-gray-200 rounded-lg"></div>
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                        <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : activeGoals.length === 0 ? (
+            <div className="text-center py-12">
+              <Target className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhuma meta ativa</h3>
+              <p className="text-gray-500 mb-6">Crie sua primeira meta para começar a acompanhar seu progresso!</p>
               <Button
-                variant="outline"
-                size="sm"
                 onClick={() => setShowCreateModal(true)}
-                className="text-primary"
+                className="bg-primary hover:bg-primary/90"
               >
-                <Plus className="h-4 w-4 mr-1" />
-                Adicionar
+                <Plus className="h-4 w-4 mr-2" />
+                Criar Primeira Meta
               </Button>
             </div>
-          </div>
-          <div className="space-y-4">
-            {activeGoals.map((goal) => (
+          ) : (
+            <div className="space-y-4">
+              {activeGoals.map((goal) => (
               <Card key={goal.id} className={`hover:shadow-lg transition-all duration-300 border-l-4 ${getPriorityColor(goal.priority)}`}>
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
@@ -851,7 +807,8 @@ const Goals = () => {
                 </CardContent>
               </Card>
             ))}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Completed Goals */}
@@ -913,7 +870,7 @@ const Goals = () => {
         )}
 
         {/* Goal Suggestions */}
-        {activeGoals.length === 0 && (
+        {!loading && activeGoals.length === 0 && (
           <div className="mb-8">
             <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
               <FlameKindling className="h-5 w-5 mr-2 text-orange-600" />
@@ -944,36 +901,7 @@ const Goals = () => {
           </div>
         )}
 
-        {/* Motivational Section */}
-        <Card className="bg-gradient-to-r from-primary/10 to-accent/10 border-primary/20">
-          <CardContent className="p-6 text-center">
-            <div className="w-16 h-16 gradient-bg rounded-full flex items-center justify-center mx-auto mb-4">
-              <Trophy className="h-8 w-8 text-white" />
-            </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">Continue Focado! 💪</h3>
-            <p className="text-gray-600 mb-4">
-              {activeGoals.length > 0 
-                ? "Você está no caminho certo. Cada treino te aproxima dos seus objetivos."
-                : "Comece definindo suas primeiras metas! O sucesso começa com um objetivo claro."
-              }
-            </p>
-            <div className="flex gap-2 justify-center">
-              {activeGoals.length === 0 ? (
-                <Button 
-                  className="gradient-bg text-white"
-                  onClick={() => setShowCreateModal(true)}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Criar Primeira Meta
-                </Button>
-              ) : (
-                <Button className="gradient-bg text-white">
-                  Ver Estatísticas Detalhadas
-                </Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+
       </main>
 
       {/* Bottom Navigation */}

@@ -6,13 +6,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Trash2, Plus, ArrowLeft, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Trash2, Plus, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { PlayFitLogo } from '@/components/ui/playfit-logo';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Exercise, WorkoutDay, WeeklySchedule } from '@/types/workout';
 import { BottomNavigation } from '@/components/ui/bottom-navigation';
-import { PlayFitLogo } from '@/components/ui/playfit-logo';
 
 const CreateWorkout = () => {
   const navigate = useNavigate();
@@ -323,16 +323,10 @@ const CreateWorkout = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')} className="mr-2">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Voltar
-              </Button>
-              <div className="w-8 h-8 gradient-bg rounded-full flex items-center justify-center mr-3">
-                <PlayFitLogo size="sm" className="text-primary-foreground" />
+              <div className="w-10 h-10 rounded-2xl flex items-center justify-center mr-3">
+                <PlayFitLogo size="md" className="text-yellow-500" />
               </div>
-              <h1 className="text-xl font-bold text-gray-900">
-                {isEditing ? 'Editar Treino' : 'Criar Novo Treino'}
-              </h1>
+              <h1 className="text-xl font-bold text-gray-900">PlayFit</h1>
             </div>
           </div>
         </div>
