@@ -152,15 +152,46 @@ const Goals = () => {
   // Carregar metas do usuário quando o componente montar
   React.useEffect(() => {
     const loadGoals = async () => {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         
-        // Por enquanto usando localStorage, futuramente será Supabase
-        const savedGoals = localStorage.getItem(`user_goals_${user?.id || 'anonymous'}`);
-        if (savedGoals) {
-          const parsedGoals = JSON.parse(savedGoals);
-          setGoals(parsedGoals);
+        // Buscar metas do usuário no Supabase
+        const { data: goalsData, error } = await supabase
+          .from('user_goals')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          throw error;
         }
+
+        // Mapear dados do banco para o formato local
+        const mappedGoals: Goal[] = (goalsData || []).map(goal => ({
+          id: goal.id,
+          title: goal.title,
+          description: goal.description || '',
+          category: goal.category,
+          goalType: goal.goal_type,
+          target: goal.target_value,
+          current: goal.current_value,
+          unit: goal.unit,
+          frequencyTarget: goal.frequency_target || undefined,
+          frequencyPeriod: goal.frequency_period as 'daily' | 'weekly' | 'monthly' || undefined,
+          startDate: goal.start_date,
+          deadline: goal.deadline || '',
+          priority: goal.priority,
+          completed: goal.completed,
+          completedAt: goal.completed_at || undefined,
+          metadata: goal.metadata || {}
+        }));
+
+        setGoals(mappedGoals);
       } catch (error) {
         console.error('Erro ao carregar metas:', error);
         toast({
@@ -173,12 +204,8 @@ const Goals = () => {
       }
     };
 
-    if (user) {
-      loadGoals();
-    } else {
-      setLoading(false);
-    }
-  }, [user]);
+    loadGoals();
+  }, [user, toast]);
 
   const getCategoryIcon = (category: Goal['category']) => {
     switch (category) {
