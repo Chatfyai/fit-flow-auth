@@ -160,19 +160,19 @@ const Goals = () => {
       try {
         setLoading(true);
         
-        // Buscar metas do usuário no Supabase
-        const { data: goalsData, error } = await supabase
-          .from('user_goals')
+        // Buscar metas do usuário no Supabase usando query direta
+        const { data: directData, error: directError } = await supabase
+          .from('user_goals' as any)
           .select('*')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false });
 
-        if (error) {
-          throw error;
+        if (directError) {
+          throw directError;
         }
 
         // Mapear dados do banco para o formato local
-        const mappedGoals: Goal[] = (goalsData || []).map(goal => ({
+        const mappedGoals: Goal[] = (directData || []).map((goal: any) => ({
           id: goal.id,
           title: goal.title,
           description: goal.description || '',
@@ -253,91 +253,160 @@ const Goals = () => {
     return Math.min(100, (goal.current / goal.target) * 100);
   };
 
-  const createGoal = () => {
-    const goal: Goal = {
-      id: Date.now().toString(),
-      title: newGoal.title,
-      description: newGoal.description,
-      category: newGoal.category,
-      goalType: newGoal.goalType,
-      target: newGoal.target,
-      current: 0,
-      unit: newGoal.unit,
-      frequencyTarget: newGoal.goalType === 'frequency' ? newGoal.frequencyTarget : undefined,
-      frequencyPeriod: newGoal.goalType === 'frequency' ? newGoal.frequencyPeriod : undefined,
-      startDate: new Date().toISOString().split('T')[0],
-      deadline: newGoal.deadline,
-      priority: newGoal.priority,
-      completed: false
-    };
+  const createGoal = async () => {
+    if (!user) {
+      toast({
+        title: "Erro",
+        description: "Você precisa estar logado para criar metas.",
+        variant: "destructive"
+      });
+      return;
+    }
 
-    const updatedGoals = [...goals, goal];
-    setGoals(updatedGoals);
-    
-    // Salvar no localStorage (futuramente será Supabase)
-    localStorage.setItem(`user_goals_${user?.id || 'anonymous'}`, JSON.stringify(updatedGoals));
-    
-    setShowCreateModal(false);
-    setNewGoal({
-      title: '',
-      description: '',
-      category: 'other',
-      goalType: 'numeric',
-      target: 0,
-      unit: '',
-      frequencyTarget: 1,
-      frequencyPeriod: 'weekly',
-      deadline: '',
-      priority: 'medium'
-    });
+    try {
+      // Criar meta no Supabase
+      const goalData = {
+        user_id: user.id,
+        title: newGoal.title,
+        description: newGoal.description,
+        category: newGoal.category,
+        goal_type: newGoal.goalType,
+        target_value: newGoal.target,
+        current_value: 0,
+        unit: newGoal.unit,
+        frequency_target: newGoal.goalType === 'frequency' ? newGoal.frequencyTarget : null,
+        frequency_period: newGoal.goalType === 'frequency' ? newGoal.frequencyPeriod : null,
+        start_date: new Date().toISOString().split('T')[0],
+        deadline: newGoal.deadline || null,
+        priority: newGoal.priority,
+        completed: false,
+        metadata: {}
+      };
 
-    toast({
-      title: "Meta criada com sucesso! 🎯",
-      description: `${goal.title} foi adicionada às suas metas ativas.`,
-    });
+      const { data: createdGoal, error } = await supabase
+        .from('user_goals' as any)
+        .insert([goalData])
+        .select('*');
+
+      if (error) {
+        throw error;
+      }
+
+      if (!createdGoal || createdGoal.length === 0) {
+        throw new Error('Nenhum dado retornado após criação da meta');
+      }
+
+      const goalFromDb = createdGoal[0] as any;
+
+      // Mapear dados do banco para o formato local
+      const mappedGoal: Goal = {
+        id: goalFromDb.id,
+        title: goalFromDb.title,
+        description: goalFromDb.description || '',
+        category: goalFromDb.category,
+        goalType: goalFromDb.goal_type,
+        target: goalFromDb.target_value,
+        current: goalFromDb.current_value,
+        unit: goalFromDb.unit,
+        frequencyTarget: goalFromDb.frequency_target || undefined,
+        frequencyPeriod: goalFromDb.frequency_period as 'daily' | 'weekly' | 'monthly' || undefined,
+        startDate: goalFromDb.start_date,
+        deadline: goalFromDb.deadline || '',
+        priority: goalFromDb.priority,
+        completed: goalFromDb.completed,
+        completedAt: goalFromDb.completed_at || undefined,
+        metadata: goalFromDb.metadata || {}
+      };
+
+      // Atualizar estado local
+      setGoals([mappedGoal, ...goals]);
+      
+      setShowCreateModal(false);
+      setNewGoal({
+        title: '',
+        description: '',
+        category: 'other',
+        goalType: 'numeric',
+        target: 0,
+        unit: '',
+        frequencyTarget: 1,
+        frequencyPeriod: 'weekly',
+        deadline: '',
+        priority: 'medium'
+      });
+
+      toast({
+        title: "Meta criada com sucesso! 🎯",
+        description: `${mappedGoal.title} foi adicionada às suas metas ativas.`,
+      });
+    } catch (error) {
+      console.error('Erro ao criar meta:', error);
+      toast({
+        title: "Erro ao criar meta",
+        description: "Não foi possível criar a meta. Tente novamente.",
+        variant: "destructive"
+      });
+    }
   };
 
-  const updateGoalProgress = (goalId: string) => {
+  const updateGoalProgress = async (goalId: string) => {
     const newValue = editingProgress[goalId];
-    if (newValue === undefined) return;
+    if (newValue === undefined || !user) return;
 
-    const updatedGoals = goals.map(goal => {
-      if (goal.id === goalId) {
-        const isCompleted = goal.goalType === 'time' 
-          ? newValue <= goal.target 
-          : newValue >= goal.target;
-        
-        return {
-          ...goal, 
-          current: newValue,
+    try {
+      const goal = goals.find(g => g.id === goalId);
+      if (!goal) return;
+
+      const isCompleted = goal.goalType === 'time' 
+        ? newValue <= goal.target 
+        : newValue >= goal.target;
+
+      // Atualizar meta no Supabase
+      const { error } = await supabase
+        .from('user_goals' as any)
+        .update({
+          current_value: newValue,
           completed: isCompleted,
-          completedAt: isCompleted && !goal.completed ? new Date().toISOString() : goal.completedAt
-        };
+          completed_at: isCompleted && !goal.completed ? new Date().toISOString() : goal.completedAt
+        })
+        .eq('id', goalId)
+        .eq('user_id', user.id);
+
+      if (error) {
+        throw error;
       }
-      return goal;
-    });
-    
-    setGoals(updatedGoals);
-    
-    // Salvar no localStorage (futuramente será Supabase)
-    localStorage.setItem(`user_goals_${user?.id || 'anonymous'}`, JSON.stringify(updatedGoals));
 
-    // Adicionar ao histórico de progresso
-    const progress: GoalProgress = {
-      id: Date.now().toString(),
-      goalId,
-      value: newValue,
-      date: new Date().toISOString().split('T')[0],
-      notes: `Progresso atualizado para ${newValue}`
-    };
-    setGoalProgress([...goalProgress, progress]);
+      // Atualizar estado local
+      const updatedGoals = goals.map(g => {
+        if (g.id === goalId) {
+          return {
+            ...g, 
+            current: newValue,
+            completed: isCompleted,
+            completedAt: isCompleted && !g.completed ? new Date().toISOString() : g.completedAt
+          };
+        }
+        return g;
+      });
+      
+      setGoals(updatedGoals);
 
-    setEditingGoal(null);
-    setEditingProgress({});
+      // Adicionar ao histórico de progresso no Supabase
+      const { error: progressError } = await supabase
+        .from('goal_progress' as any)
+        .insert([{
+          goal_id: goalId,
+          value: newValue,
+          date: new Date().toISOString().split('T')[0],
+          notes: `Progresso atualizado para ${newValue}`
+        }]);
 
-    const goal = goals.find(g => g.id === goalId);
-    if (goal) {
-      const isCompleted = goal.goalType === 'time' ? newValue <= goal.target : newValue >= goal.target;
+      if (progressError) {
+        console.error('Erro ao salvar progresso:', progressError);
+      }
+
+      setEditingGoal(null);
+      setEditingProgress({});
       
       if (isCompleted) {
         toast({
@@ -350,62 +419,103 @@ const Goals = () => {
           description: `${goal.title}: ${newValue} ${goal.unit}`,
         });
       }
+    } catch (error) {
+      console.error('Erro ao atualizar progresso:', error);
+      toast({
+        title: "Erro ao atualizar progresso",
+        description: "Não foi possível salvar o progresso. Tente novamente.",
+        variant: "destructive"
+      });
     }
   };
 
-  const markGoalAsCompleted = (goalId: string) => {
+  const markGoalAsCompleted = async (goalId: string) => {
     const goal = goals.find(g => g.id === goalId);
-    if (!goal) return;
+    if (!goal || !user) return;
 
     const completedDate = new Date().toISOString();
 
-    // Atualizar no estado local
-    setGoals(goals.map(g => 
-      g.id === goalId 
-        ? { ...g, completed: true, current: g.target, completedAt: completedDate }
-        : g
-    ));
+    try {
+      // Atualizar meta no Supabase
+      const { error } = await supabase
+        .from('user_goals' as any)
+        .update({
+          completed: true,
+          current_value: goal.target,
+          completed_at: completedDate
+        })
+        .eq('id', goalId)
+        .eq('user_id', user.id);
 
-    // Salvar no localStorage para persistência local (futuramente será Supabase)
-    const updatedGoals = goals.map(g => 
-      g.id === goalId 
-        ? { ...g, completed: true, current: g.target, completedAt: completedDate }
-        : g
-    );
-    localStorage.setItem(`user_goals_${user?.id || 'anonymous'}`, JSON.stringify(updatedGoals));
-
-    toast({
-      title: "🎉 Meta Concluída!",
-      description: `Parabéns! Você concluiu a meta "${goal.title}".`,
-      className: 'bg-green-500 border-green-600 text-white shadow-lg',
-      style: {
-        backgroundColor: '#10b981',
-        borderColor: '#059669',
-        color: '#ffffff'
+      if (error) {
+        throw error;
       }
-    });
+
+      // Atualizar estado local
+      setGoals(goals.map(g => 
+        g.id === goalId 
+          ? { ...g, completed: true, current: g.target, completedAt: completedDate }
+          : g
+      ));
+
+      toast({
+        title: "🎉 Meta Concluída!",
+        description: `Parabéns! Você concluiu a meta "${goal.title}".`,
+        className: 'bg-green-500 border-green-600 text-white shadow-lg',
+        style: {
+          backgroundColor: '#10b981',
+          borderColor: '#059669',
+          color: '#ffffff'
+        }
+      });
+    } catch (error) {
+      console.error('Erro ao marcar meta como concluída:', error);
+      toast({
+        title: "Erro ao concluir meta",
+        description: "Não foi possível marcar a meta como concluída. Tente novamente.",
+        variant: "destructive"
+      });
+    }
   };
 
-  const deleteCompletedGoal = (goalId: string) => {
+  const deleteCompletedGoal = async (goalId: string) => {
     const goal = goals.find(g => g.id === goalId);
-    if (!goal) return;
+    if (!goal || !user) return;
 
-    const updatedGoals = goals.filter(g => g.id !== goalId);
-    setGoals(updatedGoals);
-    
-    // Salvar no localStorage (futuramente será Supabase)
-    localStorage.setItem(`user_goals_${user?.id || 'anonymous'}`, JSON.stringify(updatedGoals));
+    try {
+      // Deletar meta do Supabase
+      const { error } = await supabase
+        .from('user_goals' as any)
+        .delete()
+        .eq('id', goalId)
+        .eq('user_id', user.id);
 
-    toast({
-      title: "Meta removida",
-      description: `A meta "${goal.title}" foi removida da lista.`,
-      className: 'bg-red-500 border-red-600 text-white shadow-lg',
-      style: {
-        backgroundColor: '#ef4444',
-        borderColor: '#dc2626',
-        color: '#ffffff'
+      if (error) {
+        throw error;
       }
-    });
+
+      // Atualizar estado local
+      const updatedGoals = goals.filter(g => g.id !== goalId);
+      setGoals(updatedGoals);
+
+      toast({
+        title: "Meta removida",
+        description: `A meta "${goal.title}" foi removida da lista.`,
+        className: 'bg-red-500 border-red-600 text-white shadow-lg',
+        style: {
+          backgroundColor: '#ef4444',
+          borderColor: '#dc2626',
+          color: '#ffffff'
+        }
+      });
+    } catch (error) {
+      console.error('Erro ao deletar meta:', error);
+      toast({
+        title: "Erro ao remover meta",
+        description: "Não foi possível remover a meta. Tente novamente.",
+        variant: "destructive"
+      });
+    }
   };
 
   const activeGoals = goals.filter(goal => !goal.completed);

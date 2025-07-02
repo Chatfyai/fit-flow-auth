@@ -9,6 +9,41 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      goal_progress: {
+        Row: {
+          created_at: string
+          date: string
+          goal_id: string
+          id: string
+          notes: string | null
+          value: number
+        }
+        Insert: {
+          created_at?: string
+          date?: string
+          goal_id: string
+          id?: string
+          notes?: string | null
+          value: number
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          goal_id?: string
+          id?: string
+          notes?: string | null
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goal_progress_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "user_goals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string | null
@@ -27,6 +62,72 @@ export type Database = {
           full_name?: string | null
           id?: string
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      user_goals: {
+        Row: {
+          category: Database["public"]["Enums"]["goal_category"]
+          completed: boolean
+          completed_at: string | null
+          created_at: string
+          current_value: number
+          deadline: string | null
+          description: string | null
+          frequency_period: string | null
+          frequency_target: number | null
+          goal_type: Database["public"]["Enums"]["goal_type"]
+          id: string
+          metadata: Json | null
+          priority: Database["public"]["Enums"]["goal_priority"]
+          start_date: string
+          target_value: number
+          title: string
+          unit: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["goal_category"]
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          current_value?: number
+          deadline?: string | null
+          description?: string | null
+          frequency_period?: string | null
+          frequency_target?: number | null
+          goal_type?: Database["public"]["Enums"]["goal_type"]
+          id?: string
+          metadata?: Json | null
+          priority?: Database["public"]["Enums"]["goal_priority"]
+          start_date?: string
+          target_value: number
+          title: string
+          unit: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["goal_category"]
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          current_value?: number
+          deadline?: string | null
+          description?: string | null
+          frequency_period?: string | null
+          frequency_target?: number | null
+          goal_type?: Database["public"]["Enums"]["goal_type"]
+          id?: string
+          metadata?: Json | null
+          priority?: Database["public"]["Enums"]["goal_priority"]
+          start_date?: string
+          target_value?: number
+          title?: string
+          unit?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -118,7 +219,17 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      goal_category:
+        | "strength"
+        | "cardio"
+        | "weight"
+        | "habit"
+        | "endurance"
+        | "flexibility"
+        | "nutrition"
+        | "other"
+      goal_priority: "high" | "medium" | "low"
+      goal_type: "numeric" | "time" | "boolean" | "frequency"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -233,6 +344,19 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      goal_category: [
+        "strength",
+        "cardio",
+        "weight",
+        "habit",
+        "endurance",
+        "flexibility",
+        "nutrition",
+        "other",
+      ],
+      goal_priority: ["high", "medium", "low"],
+      goal_type: ["numeric", "time", "boolean", "frequency"],
+    },
   },
 } as const
