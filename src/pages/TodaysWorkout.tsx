@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Clock, RotateCcw, CheckCircle, ChevronDown, ChevronUp, Play, Pause } from 'lucide-react';
+import { Clock, RotateCcw, CheckCircle, ChevronDown, ChevronUp, Play, Pause, ArrowLeft } from 'lucide-react';
 import { PlayFitLogo } from '@/components/ui/playfit-logo';
 import { useToast } from '@/hooks/use-toast';
 import { Exercise } from '@/types/workout';
@@ -806,6 +806,15 @@ const TodaysWorkout = () => {
       <div className="w-full max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center mb-6">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate('/')}
+            className="mr-3 p-2 hover:bg-gray-100 rounded-xl"
+            title="Voltar ao início"
+          >
+            <ArrowLeft className="h-5 w-5 text-gray-600" />
+          </Button>
           <div className="w-10 h-10 rounded-2xl flex items-center justify-center mr-4">
             <PlayFitLogo size="md" className="text-yellow-500" />
           </div>
