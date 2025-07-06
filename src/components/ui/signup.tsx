@@ -1,180 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
-import { Slot } from "@radix-ui/react-slot";
-import { cva, type VariantProps } from "class-variance-authority";
-import * as CheckboxPrimitive from "@radix-ui/react-checkbox";
-import * as LabelPrimitive from "@radix-ui/react-label";
-import { CheckIcon } from "lucide-react";
-import { JSX, SVGProps } from "react";
+import { Eye, EyeOff, Mail, Lock, User } from "lucide-react";
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
-
-const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
-  {
-    variants: {
-      variant: {
-        default:
-          "bg-primary text-primary-foreground shadow-xs hover:bg-primary/90",
-        destructive:
-          "bg-destructive text-white shadow-xs hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
-        outline:
-          "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50",
-        secondary:
-          "bg-secondary text-secondary-foreground shadow-xs hover:bg-secondary/80",
-        ghost:
-          "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
-        link: "text-primary underline-offset-4 hover:underline",
-      },
-      size: {
-        default: "h-9 px-4 py-2 has-[>svg]:px-3",
-        sm: "h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5",
-        lg: "h-10 rounded-md px-6 has-[>svg]:px-4",
-        icon: "size-9",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-      size: "default",
-    },
-  }
-);
-
-function ModernButton({
-  className,
-  variant,
-  size,
-  asChild = false,
-  ...props
-}: React.ComponentProps<"button"> &
-  VariantProps<typeof buttonVariants> & {
-    asChild?: boolean;
-  }) {
-  const Comp = asChild ? Slot : "button";
-
-  return (
-    <Comp
-      data-slot="button"
-      className={cn(buttonVariants({ variant, size, className }))}
-      {...props}
-    />
-  );
-}
-
-const ModernCard = React.forwardRef<
-  HTMLDivElement,
-  React.ComponentPropsWithoutRef<"div">
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    data-slot="card"
-    className={cn(
-      "bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-6 shadow-sm",
-      className
-    )}
-    {...props}
-  />
-));
-ModernCard.displayName = "ModernCard";
-
-const ModernCardContent = React.forwardRef<
-  HTMLDivElement,
-  React.ComponentPropsWithoutRef<"div">
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    data-slot="card-content"
-    className={cn("px-6", className)}
-    {...props}
-  />
-));
-ModernCardContent.displayName = "ModernCardContent";
-
-const ModernCheckbox = React.forwardRef<
-  React.ElementRef<typeof CheckboxPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof CheckboxPrimitive.Root>
->(({ className, ...props }, ref) => (
-  <CheckboxPrimitive.Root
-    ref={ref}
-    data-slot="checkbox"
-    className={cn(
-      "peer border-input dark:bg-input/30 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground dark:data-[state=checked]:bg-primary data-[state=checked]:border-primary focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive size-4 shrink-0 rounded-[4px] border shadow-xs transition-shadow outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",
-      className
-    )}
-    {...props}
-  >
-    <CheckboxPrimitive.Indicator
-      data-slot="checkbox-indicator"
-      className="flex items-center justify-center text-current transition-none"
-    >
-      <CheckIcon className="size-3.5" />
-    </CheckboxPrimitive.Indicator>
-  </CheckboxPrimitive.Root>
-));
-ModernCheckbox.displayName = CheckboxPrimitive.Root.displayName;
-
-const ModernInput = React.forwardRef<
-  HTMLInputElement,
-  React.InputHTMLAttributes<HTMLInputElement>
->(({ className, type, ...props }, ref) => {
-  return (
-    <input
-      type={type}
-      className={cn(
-        "file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input flex h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
-        "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
-        "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
-        className
-      )}
-      ref={ref}
-      {...props}
-    />
-  );
-});
-ModernInput.displayName = "ModernInput";
-
-const ModernLabel = React.forwardRef<
-  React.ElementRef<typeof LabelPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root>
->(({ className, ...props }, ref) => (
-  <LabelPrimitive.Root
-    ref={ref}
-    data-slot="label"
-    className={cn(
-      "flex items-center gap-2 text-sm leading-none font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50",
-      className
-    )}
-    {...props}
-  />
-));
-ModernLabel.displayName = LabelPrimitive.Root.displayName;
-
-const PlayFitLogo = (props: JSX.IntrinsicAttributes & SVGProps<SVGSVGElement>) => (
-  <svg
-    viewBox="0 0 100 100"
-    xmlns="http://www.w3.org/2000/svg"
-    {...props}
-  >
-    {/* 
-      Triângulo Play Suave - Logo PlayFit
-      Design com bordas arredondadas para visual moderno
-    */}
-    <polygon 
-      points="20,15 85,50 20,85"
-      fill="currentColor"
-      stroke="currentColor"
-      strokeWidth="15"
-      strokeLinejoin="round" 
-    />
-  </svg>
-);
 
 interface ModernSignupProps {
   onSwitchToLogin: () => void;
@@ -185,18 +14,20 @@ export default function ModernSignup({ onSwitchToLogin }: ModernSignupProps) {
     name: '',
     email: '',
     password: '',
-    confirmPassword: '',
-    newsletter: false
+    confirmPassword: ''
   });
+  const [showPassword, setShowPassword] = React.useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
+  const [acceptTerms, setAcceptTerms] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const { signUp } = useAuth();
   const { toast } = useToast();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: value
     }));
   };
 
@@ -205,18 +36,18 @@ export default function ModernSignup({ onSwitchToLogin }: ModernSignupProps) {
     
     if (formData.password !== formData.confirmPassword) {
       toast({
-        title: "Erro no cadastro",
-        description: "As senhas não coincidem!",
-        variant: "warning",
+        title: "Erro na confirmação",
+        description: "As senhas não coincidem",
+        variant: "destructive",
       });
       return;
     }
 
-    if (formData.password.length < 6) {
+    if (!acceptTerms) {
       toast({
-        title: "Erro no cadastro",
-        description: "A senha deve ter pelo menos 6 caracteres",
-        variant: "warning",
+        title: "Termos de uso",
+        description: "Você deve aceitar os termos de uso para prosseguir",
+        variant: "destructive",
       });
       return;
     }
@@ -232,20 +63,26 @@ export default function ModernSignup({ onSwitchToLogin }: ModernSignupProps) {
           description: error.message === 'User already registered' 
             ? "Este email já está cadastrado" 
             : error.message,
-          variant: "warning",
+          variant: "destructive",
         });
       } else {
         toast({
           title: "Cadastro realizado com sucesso!",
-          description: "Verifique seu email para confirmar sua conta",
-          variant: "warning",
+          description: "Verifique seu email para confirmar a conta.",
+          className: 'warning-card-playfit shadow-lg border-2',
+          style: {
+            backgroundColor: 'oklch(0.9 0.15 85)',
+            borderColor: 'oklch(0.85 0.12 75)',
+            color: '#ffffff',
+            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
+          }
         });
       }
     } catch (error) {
       toast({
         title: "Erro no cadastro",
         description: "Ocorreu um erro inesperado. Tente novamente.",
-        variant: "warning",
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
@@ -253,168 +90,199 @@ export default function ModernSignup({ onSwitchToLogin }: ModernSignupProps) {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-primary/20 to-accent/20 p-4">
-      <div className="flex flex-1 flex-col justify-center px-4 py-10 lg:px-6">
-        <div className="sm:mx-auto sm:w-full sm:max-w-md">
-          <PlayFitLogo
-            className="mx-auto h-12 w-12 text-primary"
-            aria-hidden={true}
-          />
-          <h3 className="mt-4 text-center text-2xl font-bold text-foreground">
-            Criar conta no PlayFit
-          </h3>
-          <p className="mt-2 text-center text-sm text-muted-foreground">
-            Comece sua jornada fitness hoje mesmo!
-          </p>
-        </div>
-
-        <ModernCard className="mt-6 sm:mx-auto sm:w-full sm:max-w-md">
-          <ModernCardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <ModernLabel
-                  htmlFor="name"
-                  className="text-sm font-medium text-foreground"
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        {/* Container principal */}
+        <div className="bg-white shadow-lg rounded-xl p-8 space-y-6">
+          {/* Logo PlayFit */}
+          <div className="flex justify-center">
+            <div className="flex items-center text-2xl">
+              <span className="text-black font-bold tracking-wide">Play</span>
+              <svg 
+                className="w-12 h-12 -ml-2 relative -top-0.5" 
+                viewBox="0 0 120 120" 
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <polygon 
+                  points="30,15 105,60 30,105"
+                  fill="#facc15"
+                  stroke="#facc15"
+                  strokeWidth="20"
+                  strokeLinejoin="round" 
+                />
+                <text 
+                  x="67.5" 
+                  y="65" 
+                  dominantBaseline="middle"
+                  fontFamily="system-ui, sans-serif" 
+                  fontSize="55"
+                  fontWeight="700" 
+                  fill="#000000" 
+                  textAnchor="middle"
                 >
-                  Nome completo
-                </ModernLabel>
-                <ModernInput
+                  fit
+                </text>
+              </svg>
+            </div>
+          </div>
+
+          {/* Título e subtítulo */}
+          <div className="text-center space-y-2">
+            <h2 className="text-2xl font-bold text-gray-900">Criar conta no PlayFit</h2>
+            <p className="text-gray-600">Comece sua jornada fitness hoje mesmo!</p>
+          </div>
+
+          {/* Formulário */}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Campo Nome */}
+            <div>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <User className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
                   type="text"
-                  id="name"
                   name="name"
-                  autoComplete="name"
-                  placeholder="Digite seu nome completo"
                   value={formData.name}
                   onChange={handleInputChange}
-                  className="mt-2"
+                  placeholder="Nome completo"
                   required
                   disabled={loading}
+                  className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200 bg-white text-gray-900 placeholder-gray-500"
                 />
               </div>
+            </div>
 
-              <div>
-                <ModernLabel
-                  htmlFor="email"
-                  className="text-sm font-medium text-foreground"
-                >
-                  E-mail
-                </ModernLabel>
-                <ModernInput
+            {/* Campo Email */}
+            <div>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Mail className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
                   type="email"
-                  id="email"
                   name="email"
-                  autoComplete="email"
-                  placeholder="seu@email.com"
                   value={formData.email}
                   onChange={handleInputChange}
-                  className="mt-2"
+                  placeholder="E-mail"
                   required
                   disabled={loading}
+                  className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200 bg-white text-gray-900 placeholder-gray-500"
                 />
               </div>
+            </div>
 
-              <div>
-                <ModernLabel
-                  htmlFor="password"
-                  className="text-sm font-medium text-foreground"
-                >
-                  Senha
-                </ModernLabel>
-                <ModernInput
-                  type="password"
-                  id="password"
+            {/* Campo Senha */}
+            <div>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Lock className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  type={showPassword ? 'text' : 'password'}
                   name="password"
-                  autoComplete="new-password"
-                  placeholder="Crie uma senha segura"
                   value={formData.password}
                   onChange={handleInputChange}
-                  className="mt-2"
+                  placeholder="Senha"
                   required
-                  minLength={6}
                   disabled={loading}
+                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200 bg-white text-gray-900 placeholder-gray-500"
                 />
-              </div>
-
-              <div>
-                <ModernLabel
-                  htmlFor="confirmPassword"
-                  className="text-sm font-medium text-foreground"
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center hover:text-gray-600 transition-colors"
+                  disabled={loading}
                 >
-                  Confirmar senha
-                </ModernLabel>
-                <ModernInput
-                  type="password"
-                  id="confirmPassword"
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5 text-gray-400" />
+                  ) : (
+                    <Eye className="h-5 w-5 text-gray-400" />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Campo Confirmar Senha */}
+            <div>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Lock className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'}
                   name="confirmPassword"
-                  autoComplete="new-password"
-                  placeholder="Confirme sua senha"
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
-                  className="mt-2"
+                  placeholder="Confirmar senha"
                   required
                   disabled={loading}
+                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200 bg-white text-gray-900 placeholder-gray-500"
                 />
-              </div>
-
-              <div className="mt-2 flex items-start">
-                <div className="flex h-6 items-center">
-                  <ModernCheckbox
-                    id="newsletter"
-                    name="newsletter"
-                    checked={formData.newsletter}
-                    onCheckedChange={(checked) => 
-                      setFormData(prev => ({ ...prev, newsletter: checked as boolean }))
-                    }
-                    className="size-4"
-                    disabled={loading}
-                  />
-                </div>
-                <ModernLabel
-                  htmlFor="newsletter"
-                  className="ml-3 text-sm leading-6 text-muted-foreground"
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center hover:text-gray-600 transition-colors"
+                  disabled={loading}
                 >
-                  Quero receber dicas de treino e novidades
-                </ModernLabel>
+                  {showConfirmPassword ? (
+                    <EyeOff className="h-5 w-5 text-gray-400" />
+                  ) : (
+                    <Eye className="h-5 w-5 text-gray-400" />
+                  )}
+                </button>
               </div>
+            </div>
 
-              <ModernButton 
-                type="submit" 
-                className="mt-4 w-full py-2 font-medium gradient-bg"
+            {/* Aceitar termos */}
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="acceptTerms"
+                checked={acceptTerms}
+                onChange={(e) => setAcceptTerms(e.target.checked)}
+                className="h-4 w-4 text-amber-600 focus:ring-amber-500 border-gray-300 rounded"
+              />
+                             <label htmlFor="acceptTerms" className="ml-2 block text-sm text-gray-900">
+                 Aceito os <button
+                   type="button"
+                   className="text-amber-600 hover:text-amber-500 font-medium"
+                 >
+                   termos de uso
+                 </button> e <button
+                   type="button"
+                   className="text-amber-600 hover:text-amber-500 font-medium"
+                 >
+                   política de privacidade
+                 </button>
+               </label>
+            </div>
+
+            {/* Botão principal */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-amber-500 hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Criando conta...' : 'Criar conta'}
+            </button>
+          </form>
+
+          {/* Link para Login */}
+          <div className="text-center">
+            <p className="text-sm text-gray-600">
+              Já tem uma conta?{' '}
+              <button
+                type="button"
+                onClick={onSwitchToLogin}
+                className="font-medium text-amber-600 hover:text-amber-500 transition-colors"
                 disabled={loading}
               >
-                {loading ? 'Criando conta...' : 'Criar conta'}
-              </ModernButton>
-
-              <p className="text-center text-xs text-muted-foreground">
-                Ao criar sua conta, você concorda com nossos{" "}
-                <a
-                  href="#"
-                  className="capitalize text-primary hover:text-primary/90"
-                >
-                  Termos de uso
-                </a>{" "}
-                e{" "}
-                <a
-                  href="#"
-                  className="capitalize text-primary hover:text-primary/90"
-                >
-                  Política de privacidade
-                </a>
-              </p>
-            </form>
-          </ModernCardContent>
-        </ModernCard>
-
-        <p className="mt-6 text-center text-sm text-muted-foreground">
-          Já tem uma conta?{" "}
-          <button
-            onClick={onSwitchToLogin}
-            className="font-medium text-primary hover:text-primary/90 underline"
-            disabled={loading}
-          >
-            Fazer login
-          </button>
-        </p>
+                Entrar aqui
+              </button>
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );

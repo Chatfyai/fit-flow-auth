@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Target, Trophy, Plus } from 'lucide-react';
 import { BottomNavigation } from '@/components/ui/bottom-navigation';
 import { PlayFitLogo } from '@/components/ui/playfit-logo';
+import { ProfileDropdown } from '@/components/ui/profile-dropdown';
 import { GoalStats } from '@/components/goals/GoalStats';
 import { GoalCard } from '@/components/goals/GoalCard';
 import { CreateGoalModal } from '@/components/goals/CreateGoalModal';
@@ -57,13 +58,19 @@ const Goals = () => {
     <div className="min-h-screen bg-gradient-to-br from-primary/10 to-accent/10 pb-20">
       {/* Header */}
       <header className="bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-sm sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <div className="w-10 h-10 rounded-2xl flex items-center justify-center mr-3">
                 <PlayFitLogo size="md" className="text-yellow-500" />
               </div>
               <h1 className="text-xl font-bold text-gray-900">PlayFit</h1>
+            </div>
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-gray-600 hidden md:block">
+                {user ? `Olá, ${user?.user_metadata?.full_name || user?.email}!` : 'Visitante - Faça login para salvar seu progresso'}
+              </span>
+              <ProfileDropdown />
             </div>
           </div>
         </div>

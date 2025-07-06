@@ -10,6 +10,7 @@ import { BottomNavigation } from '@/components/ui/bottom-navigation';
 import { ProgressIndicator, LoadingSpinner } from '@/components/ui/progress-indicator';
 import { Typewriter } from '@/components/ui/typewriter';
 import { PlayFitLogo } from '@/components/ui/playfit-logo';
+import { ProfileDropdown } from '@/components/ui/profile-dropdown';
 
 interface WorkoutSession {
   id: string;
@@ -26,6 +27,12 @@ const Dashboard = () => {
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [todaysWorkout, setTodaysWorkout] = useState<WorkoutDay[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Verificação de segurança - se não há usuário autenticado, redireciona para login
+  if (!user) {
+    navigate('/login');
+    return null;
+  }
 
   const fetchData = async () => {
     try {
@@ -276,17 +283,9 @@ const Dashboard = () => {
             </div>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-600 hidden md:block">
-                Olá, {user?.user_metadata?.full_name || user?.email}!
+                {user ? `Olá, ${user?.user_metadata?.full_name || user?.email}!` : 'Visitante - Faça login para salvar seu progresso'}
               </span>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => navigate('/profile')}
-                className="w-10 h-10 rounded-full p-0 hover:bg-gray-100"
-                title="Meu Perfil"
-              >
-                <User className="h-8 w-8 text-gray-600" />
-              </Button>
+              <ProfileDropdown />
             </div>
           </div>
         </div>
@@ -300,7 +299,7 @@ const Dashboard = () => {
             <p className="text-lg md:text-xl lg:text-2xl text-gray-700 font-medium flex items-center justify-center flex-wrap">
               <span>Vamos dar um play no treino</span>
               <Typewriter
-                text={user?.user_metadata?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || 'Atleta'}
+                text={user?.user_metadata?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || 'Visitante'}
                 speed={100}
                 loop={false}
                 showCursor={true}
@@ -309,9 +308,14 @@ const Dashboard = () => {
                 waitTime={3000}
               />
             </p>
+            {!user && (
+              <p className="text-sm text-gray-500 mt-2">
+                Esta é uma demonstração. Faça login para salvar seu progresso real!
+              </p>
+            )}
           </div>
           
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h2>
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">Painel</h2>
           <p className="text-gray-600">Acompanhe seu progresso fitness</p>
         </div>
 
@@ -323,15 +327,15 @@ const Dashboard = () => {
               <TrendingUp className="h-5 w-5 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-gray-900 mb-3">{Math.round(progressPercentage)}%</div>
+              <div className="text-3xl font-bold text-gray-900 mb-3">{user ? Math.round(progressPercentage) : 65}%</div>
               <ProgressIndicator 
-                value={thisWeekSessions.length} 
-                max={weeklyGoal} 
+                value={user ? thisWeekSessions.length : 4} 
+                max={user ? weeklyGoal : 6} 
                 size="md"
                 className="mb-2"
               />
               <p className="text-xs text-gray-500">
-                {thisWeekSessions.length} de {weeklyGoal} treinos semanais
+                {user ? `${thisWeekSessions.length} de ${weeklyGoal}` : '4 de 6'} treinos semanais
               </p>
             </CardContent>
           </Card>
@@ -343,6 +347,20 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               {(() => {
+                if (!user) {
+                  return (
+                    <>
+                      <div className="text-lg font-bold text-gray-900 mb-1">Perder 5kg</div>
+                      <p className="text-xs text-gray-500 mb-2">
+                        Concluída em 15/12/2024
+                      </p>
+                      <p className="text-xs text-green-600 font-medium">
+                        Parabéns! Continue assim! 🎉
+                      </p>
+                    </>
+                  );
+                }
+
                 const lastGoal = getLastCompletedGoal();
                 if (!lastGoal) {
                   return (
@@ -389,6 +407,12 @@ const Dashboard = () => {
 
                 // Função para verificar se há treino registrado em uma data específica
                 const hasWorkoutOnDate = (dateString: string) => {
+                  if (!user) {
+                    // Para usuários não autenticados, mostrar dados de exemplo
+                    const demoWorkoutDays = ['2024-12-15', '2024-12-17', '2024-12-19', '2024-12-21', '2024-12-23'];
+                    return demoWorkoutDays.includes(dateString);
+                  }
+
                   const hasSession = workoutSessions.some(session => {
                     const sessionDate = session.date.split('T')[0]; // Pega apenas a data (YYYY-MM-DD)
                     return sessionDate === dateString;
@@ -521,6 +545,32 @@ const Dashboard = () => {
                 <LoadingSpinner size="lg" variant="primary" className="mx-auto mb-4" />
                 <p className="text-gray-500">Carregando treino de hoje...</p>
               </div>
+            ) : !user ? (
+              <div className="space-y-4">
+                <div className="p-6 bg-gradient-to-r from-primary/5 to-accent/5 rounded-2xl border border-primary/20 hover:shadow-md transition-all duration-300 ease-out">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <div className="w-12 h-12 gradient-bg rounded-xl flex items-center justify-center mr-4 shadow-md">
+                        <span className="text-lg font-bold text-primary-foreground">A</span>
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-bold text-gray-900">Treino A - Exemplo</h3>
+                        <p className="text-sm text-gray-600">5 exercícios programados</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-sm text-primary font-medium bg-primary/10 px-3 py-1 rounded-lg">
+                        Faça login para ver seus treinos
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <p className="text-sm text-blue-700 font-medium">
+                    💡 Esta é uma demonstração. Faça login para criar e acompanhar seus treinos personalizados!
+                  </p>
+                </div>
+              </div>
             ) : todaysWorkout.length > 0 ? (
               <div className="space-y-4">
                 {todaysWorkout.map((workoutDay) => (
@@ -574,6 +624,30 @@ const Dashboard = () => {
               <div className="text-center py-8">
                 <LoadingSpinner size="md" variant="primary" className="mx-auto mb-3" />
                 <p className="text-gray-500">Carregando planos...</p>
+              </div>
+            ) : !user ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="p-4 bg-gradient-to-r from-gray-50 to-white rounded-xl border border-gray-100 hover:shadow-md transition-all duration-300 ease-out">
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-900">Treino Full Body</p>
+                    <p className="text-sm text-gray-600 mt-1">3 treinos</p>
+                    <p className="text-xs text-gray-500 mt-1">Exemplo de plano</p>
+                  </div>
+                </div>
+                <div className="p-4 bg-gradient-to-r from-gray-50 to-white rounded-xl border border-gray-100 hover:shadow-md transition-all duration-300 ease-out">
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-900">Treino ABC</p>
+                    <p className="text-sm text-gray-600 mt-1">6 treinos</p>
+                    <p className="text-xs text-gray-500 mt-1">Exemplo de plano</p>
+                  </div>
+                </div>
+                <div className="p-4 bg-gradient-to-r from-gray-50 to-white rounded-xl border border-gray-100 hover:shadow-md transition-all duration-300 ease-out">
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-900">Treino Funcional</p>
+                    <p className="text-sm text-gray-600 mt-1">4 treinos</p>
+                    <p className="text-xs text-gray-500 mt-1">Exemplo de plano</p>
+                  </div>
+                </div>
               </div>
             ) : workouts.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -629,10 +703,10 @@ const Dashboard = () => {
           <Button 
             size="lg"
             className="gradient-bg text-primary-foreground font-semibold shadow-lg hover:shadow-xl w-full max-w-md"
-            onClick={() => navigate('/create-workout')}
+            onClick={() => user ? navigate('/create-workout') : navigate('/login')}
           >
             <Plus className="h-5 w-5 mr-2" />
-            Criar Novo Treino
+            {user ? 'Criar Novo Treino' : 'Fazer Login para Criar Treino'}
           </Button>
         </div>
       </main>

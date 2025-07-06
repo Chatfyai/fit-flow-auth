@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Trash2, Plus, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { PlayFitLogo } from '@/components/ui/playfit-logo';
+import { ProfileDropdown } from '@/components/ui/profile-dropdown';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -273,7 +274,13 @@ const CreateWorkout = () => {
         toast({
           title: "Sucesso!",
           description: "Treino atualizado com sucesso!",
-          variant: "warning",
+          className: 'warning-card-playfit shadow-lg border-2',
+          style: {
+            backgroundColor: 'oklch(0.9 0.15 85)',
+            borderColor: 'oklch(0.85 0.12 75)',
+            color: '#ffffff',
+            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
+          }
         });
       } else {
         // Create new workout
@@ -299,7 +306,13 @@ const CreateWorkout = () => {
         toast({
           title: "Sucesso!",
           description: "Treino criado com sucesso!",
-          variant: "warning",
+          className: 'warning-card-playfit shadow-lg border-2',
+          style: {
+            backgroundColor: 'oklch(0.9 0.15 85)',
+            borderColor: 'oklch(0.85 0.12 75)',
+            color: '#ffffff',
+            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
+          }
         });
       }
 
@@ -327,6 +340,12 @@ const CreateWorkout = () => {
                 <PlayFitLogo size="md" className="text-yellow-500" />
               </div>
               <h1 className="text-xl font-bold text-gray-900">PlayFit</h1>
+            </div>
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-gray-600 hidden md:block">
+                {user ? `Olá, ${user?.user_metadata?.full_name || user?.email}!` : 'Visitante - Faça login para salvar seu progresso'}
+              </span>
+              <ProfileDropdown />
             </div>
           </div>
         </div>

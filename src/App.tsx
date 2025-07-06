@@ -17,6 +17,7 @@ import Profile from './pages/Profile';
 import Agenda from './pages/Agenda';
 import Chat from './pages/Chat';
 import Goals from './pages/Goals';
+import Nutrition from './pages/Nutrition';
 
 const queryClient = new QueryClient();
 
@@ -43,12 +44,14 @@ const AppContent = () => {
       <Routes>
         <Route path="/" element={user ? <Dashboard /> : <Index />} />
         <Route path="/dashboard" element={user ? <Dashboard /> : <Index />} />
+        <Route path="/login" element={<Index />} />
         <Route path="/create-workout" element={user ? <CreateWorkout /> : <Index />} />
         <Route path="/treino-do-dia" element={user ? <TodaysWorkout /> : <Index />} />
         <Route path="/profile" element={user ? <Profile /> : <Index />} />
         <Route path="/agenda" element={user ? <Agenda /> : <Index />} />
         <Route path="/chat" element={user ? <Chat /> : <Index />} />
         <Route path="/goals" element={user ? <Goals /> : <Index />} />
+        <Route path="/nutrition" element={user ? <Nutrition /> : <Index />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>

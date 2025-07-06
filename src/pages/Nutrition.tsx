@@ -1,28 +1,31 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Scale, Calculator, Zap } from 'lucide-react';
-import { BottomNavigation } from '@/components/ui/bottom-navigation';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Apple, ArrowLeft, Zap } from 'lucide-react';
 import { PlayFitLogo } from '@/components/ui/playfit-logo';
+import { BottomNavigation } from '@/components/ui/bottom-navigation';
 import { ProfileDropdown } from '@/components/ui/profile-dropdown';
 import { useAuth } from '@/contexts/AuthContext';
 
-const Agenda = () => {
+const Nutrition = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 to-accent/10 pb-20">
       {/* Header */}
-      <header className="bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-sm">
+      <header className="bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-sm sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <div className="w-10 h-10 rounded-2xl flex items-center justify-center mr-3">
                 <PlayFitLogo size="md" className="text-yellow-500" />
               </div>
-              <h1 className="text-xl font-bold text-gray-900">PlayFit</h1>
+              <div className="flex items-center">
+                <Apple className="h-6 w-6 mr-2 text-red-500" />
+                <h1 className="text-xl font-bold text-gray-900">Nutrição</h1>
+              </div>
             </div>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-600 hidden md:block">
@@ -35,19 +38,14 @@ const Agenda = () => {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex flex-col items-center justify-center min-h-[60vh]">
-          <Card className="w-full max-w-md text-center">
-            <CardHeader className="pb-4">
-              <div className="w-20 h-20 bg-gradient-to-br from-primary/20 to-accent/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <Scale className="h-10 w-10 text-primary" />
-              </div>
-              <CardTitle className="text-2xl font-bold text-gray-900">
-                Calculadora de IMC
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="flex justify-center">
+          <Card className="w-full max-w-lg">
+            <CardHeader>
+              <CardTitle className="text-center flex items-center justify-center">
+                <Apple className="h-6 w-6 mr-2 text-red-500" />
+                Nutrição
               </CardTitle>
-              <CardDescription className="text-base text-gray-600">
-                Calcule seu Índice de Massa Corporal
-              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -61,11 +59,11 @@ const Agenda = () => {
                     Estamos trabalhando para trazer em breve recursos como:
                   </p>
                   <ul className="text-sm warning-text mt-3 space-y-1">
-                    <li>• Calculadora de IMC interativa</li>
-                    <li>• Histórico de medições</li>
-                    <li>• Gráficos de evolução</li>
-                    <li>• Classificação de peso ideal</li>
-                    <li>• Dicas personalizadas de saúde</li>
+                    <li>• Plano alimentar personalizado</li>
+                    <li>• Contador de calorias</li>
+                    <li>• Registro de refeições</li>
+                    <li>• Análise nutricional</li>
+                    <li>• Receitas saudáveis</li>
                   </ul>
                 </div>
                 
@@ -87,4 +85,4 @@ const Agenda = () => {
   );
 };
 
-export default Agenda; 
+export default Nutrition; 

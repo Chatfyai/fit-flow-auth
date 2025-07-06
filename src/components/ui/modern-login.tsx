@@ -1,156 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
-import { Slot } from "@radix-ui/react-slot";
-import { cva, type VariantProps } from "class-variance-authority";
-import * as LabelPrimitive from "@radix-ui/react-label";
-import { Eye, EyeOff } from "lucide-react";
-import { JSX, SVGProps } from "react";
+import { Eye, EyeOff, Mail, Lock, User } from "lucide-react";
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
-
-const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
-  {
-    variants: {
-      variant: {
-        default:
-          "bg-primary text-primary-foreground shadow-xs hover:bg-primary/90",
-        destructive:
-          "bg-destructive text-white shadow-xs hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
-        outline:
-          "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50",
-        secondary:
-          "bg-secondary text-secondary-foreground shadow-xs hover:bg-secondary/80",
-        ghost:
-          "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
-        link: "text-primary underline-offset-4 hover:underline",
-      },
-      size: {
-        default: "h-9 px-4 py-2 has-[>svg]:px-3",
-        sm: "h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5",
-        lg: "h-10 rounded-md px-6 has-[>svg]:px-4",
-        icon: "size-9",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-      size: "default",
-    },
-  }
-);
-
-function ModernButton({
-  className,
-  variant,
-  size,
-  asChild = false,
-  ...props
-}: React.ComponentProps<"button"> &
-  VariantProps<typeof buttonVariants> & {
-    asChild?: boolean;
-  }) {
-  const Comp = asChild ? Slot : "button";
-
-  return (
-    <Comp
-      data-slot="button"
-      className={cn(buttonVariants({ variant, size, className }))}
-      {...props}
-    />
-  );
-}
-
-const ModernCard = React.forwardRef<
-  HTMLDivElement,
-  React.ComponentPropsWithoutRef<"div">
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    data-slot="card"
-    className={cn(
-      "bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-6 shadow-sm",
-      className
-    )}
-    {...props}
-  />
-));
-ModernCard.displayName = "ModernCard";
-
-const ModernCardContent = React.forwardRef<
-  HTMLDivElement,
-  React.ComponentPropsWithoutRef<"div">
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    data-slot="card-content"
-    className={cn("px-6", className)}
-    {...props}
-  />
-));
-ModernCardContent.displayName = "ModernCardContent";
-
-const ModernInput = React.forwardRef<
-  HTMLInputElement,
-  React.InputHTMLAttributes<HTMLInputElement>
->(({ className, type, ...props }, ref) => {
-  return (
-    <input
-      type={type}
-      className={cn(
-        "file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input flex h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
-        "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
-        "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
-        className
-      )}
-      ref={ref}
-      {...props}
-    />
-  );
-});
-ModernInput.displayName = "ModernInput";
-
-const ModernLabel = React.forwardRef<
-  React.ElementRef<typeof LabelPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root>
->(({ className, ...props }, ref) => (
-  <LabelPrimitive.Root
-    ref={ref}
-    data-slot="label"
-    className={cn(
-      "flex items-center gap-2 text-sm leading-none font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50",
-      className
-    )}
-    {...props}
-  />
-));
-ModernLabel.displayName = LabelPrimitive.Root.displayName;
-
-const PlayFitLogo = (props: JSX.IntrinsicAttributes & SVGProps<SVGSVGElement>) => (
-  <svg
-    viewBox="0 0 100 100"
-    xmlns="http://www.w3.org/2000/svg"
-    {...props}
-  >
-    {/* 
-      Triângulo Play Suave - Logo PlayFit
-      Design com bordas arredondadas para visual moderno
-    */}
-    <polygon 
-      points="20,15 85,50 20,85"
-      fill="currentColor"
-      stroke="currentColor"
-      strokeWidth="15"
-      strokeLinejoin="round" 
-    />
-  </svg>
-);
 
 interface ModernLoginProps {
   onSwitchToRegister: () => void;
@@ -162,6 +15,7 @@ export default function ModernLogin({ onSwitchToRegister }: ModernLoginProps) {
     password: ''
   });
   const [showPassword, setShowPassword] = React.useState(false);
+  const [rememberMe, setRememberMe] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const { signIn } = useAuth();
   const { toast } = useToast();
@@ -187,133 +41,178 @@ export default function ModernLogin({ onSwitchToRegister }: ModernLoginProps) {
           description: error.message === 'Invalid login credentials' 
             ? "Email ou senha incorretos" 
             : error.message,
-          variant: "warning",
+          variant: "destructive",
         });
       } else {
         toast({
           title: "Login realizado com sucesso!",
           description: "Bem-vindo ao PlayFit",
-          variant: "warning",
+          className: 'warning-card-playfit shadow-lg border-2',
+          style: {
+            backgroundColor: 'oklch(0.9 0.15 85)',
+            borderColor: 'oklch(0.85 0.12 75)',
+            color: '#ffffff',
+            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
+          }
         });
       }
     } catch (error) {
       toast({
         title: "Erro no login",
         description: "Ocorreu um erro inesperado. Tente novamente.",
-        variant: "warning",
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-primary/20 to-accent/20 p-4">
-      <div className="flex flex-1 flex-col justify-center px-4 py-10 lg:px-6">
-        <div className="sm:mx-auto sm:w-full sm:max-w-md">
-          <PlayFitLogo
-            className="mx-auto h-12 w-12 text-primary"
-            aria-hidden={true}
-          />
-          <h3 className="mt-4 text-center text-2xl font-bold text-foreground">
-            Bem-vindo ao PlayFit
-          </h3>
-          <p className="mt-2 text-center text-sm text-muted-foreground">
-            Entre na sua conta para continuar sua jornada fitness
-          </p>
-        </div>
 
-        <ModernCard className="mt-6 sm:mx-auto sm:w-full sm:max-w-md">
-          <ModernCardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <ModernLabel
-                  htmlFor="email"
-                  className="text-sm font-medium text-foreground"
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        {/* Container principal */}
+        <div className="bg-white shadow-lg rounded-xl p-8 space-y-6">
+          {/* Logo PlayFit */}
+          <div className="flex justify-center">
+            <div className="flex items-center text-2xl">
+              <span className="text-black font-bold tracking-wide">Play</span>
+              <svg 
+                className="w-12 h-12 -ml-2 relative -top-0.5" 
+                viewBox="0 0 120 120" 
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <polygon 
+                  points="30,15 105,60 30,105"
+                  fill="#facc15"
+                  stroke="#facc15"
+                  strokeWidth="20"
+                  strokeLinejoin="round" 
+                />
+                <text 
+                  x="67.5" 
+                  y="65" 
+                  dominantBaseline="middle"
+                  fontFamily="system-ui, sans-serif" 
+                  fontSize="55"
+                  fontWeight="700" 
+                  fill="#000000" 
+                  textAnchor="middle"
                 >
-                  E-mail
-                </ModernLabel>
-                <ModernInput
+                  fit
+                </text>
+              </svg>
+            </div>
+          </div>
+
+                     {/* Título e subtítulo */}
+           <div className="text-center space-y-2">
+             <h2 className="text-2xl font-bold text-gray-900">Bem vindo ao PlayFit</h2>
+             <p className="text-gray-600">Vamos dar um play na sua meta</p>
+           </div>
+
+          {/* Formulário */}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Campo Email */}
+            <div>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Mail className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
                   type="email"
-                  id="email"
                   name="email"
-                  autoComplete="email"
-                  placeholder="seu@email.com"
                   value={formData.email}
                   onChange={handleInputChange}
-                  className="mt-2"
+                                     placeholder="E-mail"
                   required
                   disabled={loading}
+                  className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200 bg-white text-gray-900 placeholder-gray-500"
                 />
               </div>
+            </div>
 
-              <div>
-                <ModernLabel
-                  htmlFor="password"
-                  className="text-sm font-medium text-foreground"
+            {/* Campo Password */}
+            <div>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Lock className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  name="password"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                                     placeholder="Senha"
+                  required
+                  disabled={loading}
+                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200 bg-white text-gray-900 placeholder-gray-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center hover:text-gray-600 transition-colors"
+                  disabled={loading}
                 >
-                  Senha
-                </ModernLabel>
-                <div className="relative mt-2">
-                  <ModernInput
-                    type={showPassword ? 'text' : 'password'}
-                    id="password"
-                    name="password"
-                    autoComplete="current-password"
-                    placeholder="Digite sua senha"
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    className="pr-10"
-                    required
-                    disabled={loading}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    disabled={loading}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </button>
-                </div>
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5 text-gray-400" />
+                  ) : (
+                    <Eye className="h-5 w-5 text-gray-400" />
+                  )}
+                </button>
               </div>
+            </div>
 
-              <div className="flex items-center justify-between">
-                <div className="text-sm">
-                  <a
-                    href="#"
-                    className="font-medium text-primary hover:text-primary/90"
-                  >
-                    Esqueceu sua senha?
-                  </a>
-                </div>
+            {/* Remember me e Forgot password */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="rememberMe"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="h-4 w-4 text-amber-600 focus:ring-amber-500 border-gray-300 rounded"
+                />
+                                 <label htmlFor="rememberMe" className="ml-2 block text-sm text-gray-900">
+                   Lembrar
+                 </label>
               </div>
-
-              <ModernButton 
-                type="submit" 
-                className="mt-4 w-full py-2 font-medium gradient-bg"
-                disabled={loading}
+              <button
+                type="button"
+                className="text-sm font-medium text-amber-600 hover:text-amber-500 transition-colors"
               >
-                {loading ? 'Entrando...' : 'Entrar'}
-              </ModernButton>
-            </form>
-          </ModernCardContent>
-        </ModernCard>
+                                 Esqueceu a senha?
+              </button>
+            </div>
 
-        <p className="mt-6 text-center text-sm text-muted-foreground">
-          Ainda não tem uma conta?{" "}
-          <button
-            onClick={onSwitchToRegister}
-            className="font-medium text-primary hover:text-primary/90 underline"
-            disabled={loading}
-          >
-            Criar conta
-          </button>
-        </p>
+            {/* Botão principal */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-amber-500 hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+                             {loading ? 'Entrando...' : 'Entrar'}
+            </button>
+          </form>
+
+          
+
+                     {/* Link para Sign up */}
+           <div className="text-center">
+             <p className="text-sm text-gray-600">
+               Ainda não tem uma conta?{' '}
+               <button
+                 type="button"
+                 onClick={onSwitchToRegister}
+                 className="font-medium text-amber-600 hover:text-amber-500 transition-colors"
+                 disabled={loading}
+               >
+                 Cadastre aqui
+               </button>
+             </p>
+           </div>
+        </div>
       </div>
     </div>
   );

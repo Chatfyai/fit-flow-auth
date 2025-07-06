@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Clock, RotateCcw, CheckCircle, ChevronDown, ChevronUp, Play, Pause, ArrowLeft } from 'lucide-react';
 import { PlayFitLogo } from '@/components/ui/playfit-logo';
+import { ProfileDropdown } from '@/components/ui/profile-dropdown';
 import { useToast } from '@/hooks/use-toast';
 import { Exercise } from '@/types/workout';
 import { supabase } from '@/integrations/supabase/client';
@@ -720,10 +721,10 @@ const TodaysWorkout = () => {
         toast({
           title: 'Treino Concluído!',
           description: 'Parabéns! Seu treino foi salvo com sucesso.',
-          className: 'bg-green-500 border-green-600 text-white shadow-lg [&>button]:text-white [&>button]:hover:text-gray-100',
+          className: 'warning-card-playfit shadow-lg border-2',
           style: {
-            backgroundColor: '#10b981',
-            borderColor: '#059669',
+            backgroundColor: 'oklch(0.9 0.15 85)',
+            borderColor: 'oklch(0.85 0.12 75)',
             color: '#ffffff',
             boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
           }
@@ -737,10 +738,10 @@ const TodaysWorkout = () => {
         toast({
           title: 'Treino Concluído!',
           description: 'Parabéns! Houve um problema ao salvar, mas seu treino foi concluído.',
-          className: 'bg-green-500 border-green-600 text-white shadow-lg [&>button]:text-white [&>button]:hover:text-gray-100',
+          className: 'warning-card-playfit shadow-lg border-2',
           style: {
-            backgroundColor: '#10b981',
-            borderColor: '#059669',
+            backgroundColor: 'oklch(0.9 0.15 85)',
+            borderColor: 'oklch(0.85 0.12 75)',
             color: '#ffffff',
             boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
           }
@@ -803,27 +804,32 @@ const TodaysWorkout = () => {
         </div>
       )}
       
-      <div className="w-full max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center mb-6">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate('/')}
-            className="mr-3 p-2 hover:bg-gray-100 rounded-xl"
-            title="Voltar ao início"
-          >
-            <ArrowLeft className="h-5 w-5 text-gray-600" />
-          </Button>
-          <div className="w-10 h-10 rounded-2xl flex items-center justify-center mr-4">
-            <PlayFitLogo size="md" className="text-yellow-500" />
+      {/* Header */}
+      <header className="bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center">
+              <div className="w-10 h-10 rounded-2xl flex items-center justify-center mr-3">
+                <PlayFitLogo size="md" className="text-yellow-500" />
+              </div>
+              <h1 className="text-xl font-bold text-gray-900">PlayFit</h1>
+            </div>
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-gray-600 hidden md:block">
+                {user ? `Olá, ${user?.user_metadata?.full_name || user?.email}!` : 'Visitante - Faça login para salvar seu progresso'}
+              </span>
+              <ProfileDropdown />
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">PlayFit</h1>
-            <p className="text-gray-600">
-              {date || new Date().toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-            </p>
-          </div>
+        </div>
+      </header>
+
+      <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+        {/* Data */}
+        <div className="mb-6">
+          <p className="text-lg text-gray-600 font-medium">
+            {date || new Date().toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+          </p>
         </div>
 
         {/* Progress Bar - Always in same position */}

@@ -1,11 +1,12 @@
 import * as React from "react"
 import { useNavigate, useLocation } from "react-router-dom"
+import { useAuth } from "@/contexts/AuthContext"
 import { cn } from "@/lib/utils"
 import { 
   Home, 
   Scale, 
   Plus, 
-  Activity, 
+  Apple, 
   Bot 
 } from "lucide-react"
 
@@ -24,10 +25,10 @@ const navigationItems: NavigationItem[] = [
     path: '/dashboard'
   },
   {
-    id: 'goals',
-    label: 'Metas',
-    icon: Activity,
-    path: '/goals'
+    id: 'nutrition',
+    label: 'Nutrição',
+    icon: Apple,
+    path: '/nutrition'
   },
   {
     id: 'create',
@@ -58,8 +59,14 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
 }) => {
   const navigate = useNavigate()
   const location = useLocation()
+  const { user } = useAuth()
 
   const handleNavigation = (path: string) => {
+    // Apenas '/dashboard' é permitido para usuários não autenticados
+    if (!user && path !== '/dashboard') {
+      navigate('/login')
+      return
+    }
     navigate(path)
   }
 
