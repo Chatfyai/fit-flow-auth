@@ -139,10 +139,6 @@ function SetCard({ exerciseName, setNumber, repetitions, variation, restTime, on
   const navigate = useNavigate();
 
   const handleComplete = () => {
-    if (!user) {
-      navigate('/login');
-      return;
-    }
     onComplete();
     toast({
       title: 'Série concluída!',
@@ -158,10 +154,6 @@ function SetCard({ exerciseName, setNumber, repetitions, variation, restTime, on
   };
 
   const handleStart = () => {
-    if (!user) {
-      navigate('/login');
-      return;
-    }
     onStart();
     toast({
       title: 'Série iniciada!',
@@ -252,11 +244,12 @@ interface ExerciseCardProps {
   onSetStart: (setIndex: number) => void;
   completedSets: boolean[];
   startedSets: boolean[];
-  isExpanded: boolean;
-  onToggle: () => void;
+  isExpanded?: boolean; // Mantido para compatibilidade mas não usado
+  onToggle?: () => void; // Mantido para compatibilidade mas não usado
 }
 
 function ExerciseCard({ exercise, onSetComplete, onSetStart, completedSets, startedSets, isExpanded, onToggle }: ExerciseCardProps) {
+  const [isTimerActive, setIsTimerActive] = useState(false);
 
   const getExerciseDisplay = () => {
     if (exercise.series && exercise.repetitions) {
@@ -271,21 +264,67 @@ function ExerciseCard({ exercise, onSetComplete, onSetStart, completedSets, star
   const totalSets = exercise.series || 0;
   const completedCount = completedSets.filter(Boolean).length;
   const allCompleted = completedCount === totalSets;
+  const isInProgress = completedCount > 0 && !allCompleted;
+
+  // Resetar timer quando exercício for completado
+  React.useEffect(() => {
+    if (allCompleted) {
+      setIsTimerActive(false);
+    }
+  }, [allCompleted]);
+
+  const handleCardClick = () => {
+    if (!allCompleted && !isTimerActive) {
+      setIsTimerActive(true);
+      if (completedCount < totalSets) {
+        onSetStart(completedCount);
+      }
+    }
+  };
+
+  const handleCompleteSet = () => {
+    if (completedCount < totalSets) {
+      onSetComplete(completedCount);
+      setIsTimerActive(false);
+      
+      // Auto-iniciar próxima série se não for a última
+      if (completedCount + 1 < totalSets) {
+        setTimeout(() => {
+          setIsTimerActive(true);
+          onSetStart(completedCount + 1);
+        }, 1000);
+      }
+    }
+  };
+
+  const getCardColor = () => {
+    if (allCompleted) return 'bg-yellow-50 border-yellow-200'; // Amarelo quando completo
+    if (isInProgress || isTimerActive) return 'bg-blue-50 border-blue-200';
+    return 'bg-white border-gray-200';
+  };
+
+  const getProgressColor = () => {
+    if (allCompleted) return 'text-yellow-600';
+    if (isInProgress) return 'text-blue-600';
+    return 'text-gray-600';
+  };
 
   return (
-    <div className="space-y-2">
-      <Card className={`transition-all duration-200 ${allCompleted ? 'bg-green-50 border-green-200' : 'bg-white'}`}>
-        <CardHeader 
-          className="cursor-pointer"
-          onClick={onToggle}
-        >
+    <Card className={`transition-all duration-200 cursor-pointer hover:shadow-lg ${getCardColor()}`}>
+      <CardContent className="p-4" onClick={handleCardClick}>
+        <div className="space-y-3">
+          {/* Header do exercício */}
           <div className="flex items-center justify-between">
             <div className="flex-1">
-              <CardTitle className="text-lg flex items-center gap-2">
-                {allCompleted && <CheckCircle className="h-5 w-5 text-green-600" />}
+              <h4 className="font-medium flex items-center gap-2">
+                {allCompleted ? (
+                  <CheckCircle className="h-5 w-5 text-yellow-600" />
+                ) : isInProgress ? (
+                  <div className="h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                ) : null}
                 {exercise.name}
-              </CardTitle>
-              <CardDescription>
+              </h4>
+              <p className="text-sm text-muted-foreground">
                 {getExerciseDisplay()}
                 {exercise.variation && (
                   <>
@@ -293,35 +332,68 @@ function ExerciseCard({ exercise, onSetComplete, onSetStart, completedSets, star
                     <span className="text-red-600 font-medium">{exercise.variation}</span>
                   </>
                 )}
-                {completedCount > 0 && ` • ${completedCount}/${totalSets} séries concluídas`}
-              </CardDescription>
+              </p>
             </div>
-            <div className="flex items-center gap-2">
-              {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            
+            {/* Contador de séries */}
+            <div className={`text-sm font-medium ${getProgressColor()}`}>
+              {completedCount}/{totalSets} séries
             </div>
           </div>
-        </CardHeader>
-      </Card>
 
-      {isExpanded && totalSets > 0 && (
-        <div className="space-y-2 ml-4 animate-in slide-in-from-top-1 duration-300">
-          {Array.from({ length: totalSets }, (_, index) => (
-            <SetCard
-              key={`${exercise.id}-set-${index}`}
-              exerciseName={exercise.name}
-              setNumber={index + 1}
-              repetitions={exercise.repetitions || 'N/A'}
-              variation={exercise.variation}
-              restTime={exercise.rest_time}
-              onComplete={() => onSetComplete(index)}
-              onStart={() => onSetStart(index)}
-              isCompleted={completedSets[index] || false}
-              isStarted={startedSets[index] || false}
-            />
-          ))}
+          {/* Cronômetro e controles (aparecem quando ativo) */}
+          {(isTimerActive || isInProgress) && (
+            <div className="flex items-center justify-between bg-gray-50 rounded-lg p-3">
+              <div className="flex items-center gap-2">
+                {exercise.rest_time && (
+                  <SetTimer 
+                    restTime={exercise.rest_time} 
+                    onComplete={() => setIsTimerActive(false)}
+                  />
+                )}
+                {!exercise.rest_time && (
+                  <div className="flex items-center text-sm text-muted-foreground">
+                    <Clock className="h-3 w-3 mr-1" />
+                    {exercise.repetitions} reps
+                  </div>
+                )}
+              </div>
+              
+              {/* Botão concluir série */}
+              {!allCompleted && (
+                <Button
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleCompleteSet();
+                  }}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                >
+                  <CheckCircle className="h-4 w-4 mr-1" />
+                  Concluído
+                </Button>
+              )}
+            </div>
+          )}
+
+          {/* Mensagem de conclusão */}
+          {allCompleted && (
+            <div className="text-center py-2">
+              <span className="text-sm font-medium text-yellow-600">
+                ✨ Exercício concluído!
+              </span>
+            </div>
+          )}
+
+          {/* Instruções iniciais */}
+          {!isTimerActive && !isInProgress && !allCompleted && (
+            <div className="text-center py-2 text-gray-500 text-sm">
+              Clique para iniciar o cronômetro
+            </div>
+          )}
         </div>
-      )}
-    </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -344,8 +416,7 @@ const TodaysWorkout = () => {
     } 
   }>({});
 
-  // Estado para controlar qual exercício está expandido (accordion)
-  const [expandedExerciseId, setExpandedExerciseId] = useState<string | null>(null);
+  // Removido estado de expansão - não é mais necessário
   
   // Estado para controlar o loading do salvamento da sessão
   const [isSavingSession, setIsSavingSession] = useState(false);
@@ -413,12 +484,19 @@ const TodaysWorkout = () => {
      
      // Primeiro inicializar todos os exercícios
      if (finalWorkoutDays && finalWorkoutDays.length > 0) {
+       const newExerciseSets: typeof exerciseSets = {};
+       
        finalWorkoutDays.forEach((workoutDay: any) => {
          workoutDay.exercises.forEach((exercise: Exercise) => {
            const seriesCount = exercise.series || 0;
-           initializeExerciseSets(exercise.id, seriesCount);
+           newExerciseSets[exercise.id] = {
+             completed: new Array(seriesCount).fill(false),
+             started: new Array(seriesCount).fill(false)
+           };
          });
        });
+       
+       setExerciseSets(newExerciseSets);
        
        // Depois carregar o progresso salvo (apenas se estiver logado)
        if (user) {
@@ -463,11 +541,7 @@ const TodaysWorkout = () => {
 
 
   // Função para controlar expansão de exercícios (apenas um por vez)
-  const handleExerciseToggle = (exerciseId: string) => {
-    setExpandedExerciseId(prevExpanded => 
-      prevExpanded === exerciseId ? null : exerciseId
-    );
-  };
+  // Função de toggle removida - não é mais necessária
 
   const initializeExerciseSets = (exerciseId: string, seriesCount: number) => {
     if (!exerciseSets[exerciseId]) {
@@ -482,60 +556,72 @@ const TodaysWorkout = () => {
   };
 
   const handleSetComplete = (exerciseId: string, setIndex: number) => {
-    if (!user) {
-      navigate('/login');
+    if (!exerciseSets[exerciseId]) {
+      console.error('❌ Exercício não encontrado:', exerciseId);
       return;
     }
     
-    const newExerciseSets = {
-      ...exerciseSets,
-      [exerciseId]: {
-        ...exerciseSets[exerciseId],
-        completed: exerciseSets[exerciseId].completed.map((completed, index) => 
-          index === setIndex ? true : completed
-        )
+    setExerciseSets(prevState => {
+      const newExerciseSets = {
+        ...prevState,
+        [exerciseId]: {
+          ...prevState[exerciseId],
+          completed: prevState[exerciseId].completed.map((completed, index) => 
+            index === setIndex ? true : completed
+          )
+        }
+      };
+      
+      // Salvar progresso apenas se o usuário estiver logado
+      if (user) {
+        saveProgressToStorage(newExerciseSets);
+        savePartialProgress(newExerciseSets);
       }
-    };
-    
-    setExerciseSets(newExerciseSets);
-    saveProgressToStorage(newExerciseSets);
-    savePartialProgress(newExerciseSets);
+      
+      return newExerciseSets;
+    });
   };
 
   const handleSetStart = (exerciseId: string, setIndex: number) => {
-    if (!user) {
-      navigate('/login');
-      return;
-    }
-    
-    const newExerciseSets = {
-      ...exerciseSets,
-      [exerciseId]: {
-        ...exerciseSets[exerciseId],
-        started: exerciseSets[exerciseId].started.map((started, index) => 
-          index === setIndex ? true : started
-        )
+    setExerciseSets(prevState => {
+      const newExerciseSets = {
+        ...prevState,
+        [exerciseId]: {
+          ...prevState[exerciseId],
+          started: prevState[exerciseId].started.map((started, index) => 
+            index === setIndex ? true : started
+          )
+        }
+      };
+      
+      // Salvar progresso apenas se o usuário estiver logado
+      if (user) {
+        saveProgressToStorage(newExerciseSets);
       }
-    };
-    
-    setExerciseSets(newExerciseSets);
-    saveProgressToStorage(newExerciseSets);
+      
+      return newExerciseSets;
+    });
   };
 
-  // Calculate progress
-  const totalSets = finalWorkoutDays?.reduce((total: number, day: any) => {
-    return total + day.exercises.reduce((dayTotal: number, exercise: Exercise) => {
-      const seriesCount = exercise.series || 0;
-      initializeExerciseSets(exercise.id, seriesCount);
-      return dayTotal + seriesCount;
+  // Calculate progress with memoization
+  const totalSets = React.useMemo(() => {
+    return finalWorkoutDays?.reduce((total: number, day: any) => {
+      return total + day.exercises.reduce((dayTotal: number, exercise: Exercise) => {
+        const seriesCount = exercise.series || 0;
+        return dayTotal + seriesCount;
+      }, 0);
+    }, 0) || 0;
+  }, [finalWorkoutDays]);
+
+  const completedSets = React.useMemo(() => {
+    return Object.values(exerciseSets).reduce((total, exercise) => {
+      return total + exercise.completed.filter(Boolean).length;
     }, 0);
-  }, 0) || 0;
+  }, [exerciseSets]);
 
-  const completedSets = Object.values(exerciseSets).reduce((total, exercise) => {
-    return total + exercise.completed.filter(Boolean).length;
-  }, 0);
-
-  const progressPercentage = totalSets > 0 ? (completedSets / totalSets) * 100 : 0;
+  const progressPercentage = React.useMemo(() => {
+    return totalSets > 0 ? (completedSets / totalSets) * 100 : 0;
+  }, [completedSets, totalSets]);
 
   // Controlar scroll e exibição da div fixa
   useEffect(() => {
@@ -976,8 +1062,6 @@ const TodaysWorkout = () => {
                 {/* Exercícios abaixo do card */}
                 <div className="space-y-4 pl-4">
                   {workoutDay.exercises.map((exercise: Exercise) => {
-                    const seriesCount = exercise.series || 0;
-                    initializeExerciseSets(exercise.id, seriesCount);
                     const exerciseState = exerciseSets[exercise.id] || { completed: [], started: [] };
                     
                     return (
@@ -988,8 +1072,8 @@ const TodaysWorkout = () => {
                         onSetStart={(setIndex) => handleSetStart(exercise.id, setIndex)}
                         completedSets={exerciseState.completed}
                         startedSets={exerciseState.started}
-                        isExpanded={expandedExerciseId === exercise.id}
-                        onToggle={() => handleExerciseToggle(exercise.id)}
+                        isExpanded={false}
+                        onToggle={() => {}}
                       />
                     );
                   })}
