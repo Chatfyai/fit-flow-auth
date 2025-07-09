@@ -250,6 +250,7 @@ interface ExerciseCardProps {
 
 function ExerciseCard({ exercise, onSetComplete, onSetStart, completedSets, startedSets, isExpanded, onToggle }: ExerciseCardProps) {
   const [isTimerActive, setIsTimerActive] = useState(false);
+  const [isTimerCompleted, setIsTimerCompleted] = useState(false);
 
   const getExerciseDisplay = () => {
     if (exercise.series && exercise.repetitions) {
@@ -270,12 +271,14 @@ function ExerciseCard({ exercise, onSetComplete, onSetStart, completedSets, star
   React.useEffect(() => {
     if (allCompleted) {
       setIsTimerActive(false);
+      setIsTimerCompleted(false);
     }
   }, [allCompleted]);
 
   const handleCardClick = () => {
-    if (!allCompleted && !isTimerActive) {
+    if (!allCompleted && !isTimerActive && !isTimerCompleted) {
       setIsTimerActive(true);
+      setIsTimerCompleted(false);
       if (completedCount < totalSets) {
         onSetStart(completedCount);
       }
@@ -286,11 +289,13 @@ function ExerciseCard({ exercise, onSetComplete, onSetStart, completedSets, star
     if (completedCount < totalSets) {
       onSetComplete(completedCount);
       setIsTimerActive(false);
+      setIsTimerCompleted(false);
       
       // Auto-iniciar próxima série se não for a última
       if (completedCount + 1 < totalSets) {
         setTimeout(() => {
           setIsTimerActive(true);
+          setIsTimerCompleted(false);
           onSetStart(completedCount + 1);
         }, 1000);
       }
@@ -341,14 +346,19 @@ function ExerciseCard({ exercise, onSetComplete, onSetStart, completedSets, star
             </div>
           </div>
 
-          {/* Cronômetro e controles (aparecem quando ativo) */}
-          {(isTimerActive || isInProgress) && (
-            <div className="flex items-center justify-between bg-gray-50 rounded-lg p-3">
+          {/* Cronômetro e controles (aparecem quando ativo, em progresso ou timer completado) */}
+          {(isTimerActive || isInProgress || isTimerCompleted) && !allCompleted && (
+            <div className={`flex items-center justify-between rounded-lg p-3 ${
+              isTimerCompleted ? 'bg-green-50 border border-green-200' : 'bg-gray-50'
+            }`}>
               <div className="flex items-center gap-2">
                 {exercise.rest_time && (
                   <SetTimer 
                     restTime={exercise.rest_time} 
-                    onComplete={() => setIsTimerActive(false)}
+                    onComplete={() => {
+                      setIsTimerActive(false);
+                      setIsTimerCompleted(true);
+                    }}
                   />
                 )}
                 {!exercise.rest_time && (
@@ -357,22 +367,21 @@ function ExerciseCard({ exercise, onSetComplete, onSetStart, completedSets, star
                     {exercise.repetitions} reps
                   </div>
                 )}
+
               </div>
               
               {/* Botão concluir série */}
-              {!allCompleted && (
-                <Button
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleCompleteSet();
-                  }}
-                  className="bg-green-600 hover:bg-green-700 text-white"
-                >
-                  <CheckCircle className="h-4 w-4 mr-1" />
-                  Concluído
-                </Button>
-              )}
+              <Button
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCompleteSet();
+                }}
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                <CheckCircle className="h-4 w-4 mr-1" />
+                Concluído
+              </Button>
             </div>
           )}
 
@@ -386,7 +395,7 @@ function ExerciseCard({ exercise, onSetComplete, onSetStart, completedSets, star
           )}
 
           {/* Instruções iniciais */}
-          {!isTimerActive && !isInProgress && !allCompleted && (
+          {!isTimerActive && !isInProgress && !allCompleted && !isTimerCompleted && (
             <div className="text-center py-2 text-gray-500 text-sm">
               Clique para iniciar o cronômetro
             </div>

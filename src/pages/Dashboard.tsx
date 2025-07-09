@@ -555,7 +555,7 @@ const Dashboard = () => {
                         >
                           {React.cloneElement(badge.icon as React.ReactElement, { 
                             className: "w-6 h-6",
-                            style: { color: badge.achieved ? '#FFE8B3' : '#9CA3AF' }
+                            style: { color: badge.achieved ? '#8B4513' : '#9CA3AF' }
                           })}
                         </div>
                         <div className={`text-xs font-medium ${badge.achieved ? 'text-gray-900' : 'text-gray-500'}`}>
