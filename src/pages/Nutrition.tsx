@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Apple, ArrowLeft, Zap } from 'lucide-react';
+import { Apple, Zap } from 'lucide-react';
 import { PlayFitLogo } from '@/components/ui/playfit-logo';
 import { BottomNavigation } from '@/components/ui/bottom-navigation';
 import { ProfileDropdown } from '@/components/ui/profile-dropdown';
@@ -15,17 +15,14 @@ const Nutrition = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 to-accent/10 pb-20">
       {/* Header */}
-      <header className="bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-sm sticky top-0 z-10">
+      <header className="bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <div className="w-10 h-10 rounded-2xl flex items-center justify-center mr-3">
                 <PlayFitLogo size="md" className="text-yellow-500" />
               </div>
-              <div className="flex items-center">
-                <Apple className="h-6 w-6 mr-2 text-red-500" />
-                <h1 className="text-xl font-bold text-gray-900">Nutrição</h1>
-              </div>
+              <h1 className="text-xl font-bold text-gray-900">PlayFit</h1>
             </div>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-600 hidden md:block">

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff, Mail, Lock, User } from "lucide-react";
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -10,6 +11,7 @@ interface ModernSignupProps {
 }
 
 export default function ModernSignup({ onSwitchToLogin }: ModernSignupProps) {
+  const navigate = useNavigate();
   const [formData, setFormData] = React.useState({
     name: '',
     email: '',
@@ -77,6 +79,11 @@ export default function ModernSignup({ onSwitchToLogin }: ModernSignupProps) {
             boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
           }
         });
+        
+        // Redirecionar para dashboard após cadastro bem-sucedido
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 2000);
       }
     } catch (error) {
       toast({

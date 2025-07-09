@@ -4,12 +4,14 @@ import * as React from "react";
 import { Eye, EyeOff, Mail, Lock, User } from "lucide-react";
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 interface ModernLoginProps {
   onSwitchToRegister: () => void;
 }
 
 export default function ModernLogin({ onSwitchToRegister }: ModernLoginProps) {
+  const navigate = useNavigate();
   const [formData, setFormData] = React.useState({
     email: '',
     password: ''
@@ -55,6 +57,11 @@ export default function ModernLogin({ onSwitchToRegister }: ModernLoginProps) {
             boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
           }
         });
+        
+        // Redirecionar para dashboard após login bem-sucedido
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 1000);
       }
     } catch (error) {
       toast({

@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext"
 import { cn } from "@/lib/utils"
 import { 
   Home, 
-  Scale, 
+  Dumbbell, 
   Plus, 
   Apple, 
   Bot 
@@ -37,10 +37,10 @@ const navigationItems: NavigationItem[] = [
     path: '/create-workout'
   },
   {
-    id: 'calendar',
-    label: 'IMC',
-    icon: Scale,
-    path: '/agenda'
+    id: 'badges',
+    label: 'Emblema',
+    icon: Dumbbell,
+    path: '/badges'
   },
   {
     id: 'chat',

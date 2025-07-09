@@ -1,16 +1,160 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Scale, Calculator, Zap } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Separator } from '@/components/ui/separator';
+import { 
+  Scale, 
+  Calendar as CalendarIcon, 
+  HelpCircle, 
+  Camera, 
+  Plus,
+  TrendingUp,
+  User,
+  Ruler,
+  Target
+} from 'lucide-react';
 import { BottomNavigation } from '@/components/ui/bottom-navigation';
 import { PlayFitLogo } from '@/components/ui/playfit-logo';
 import { ProfileDropdown } from '@/components/ui/profile-dropdown';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 const Agenda = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { toast } = useToast();
+  
+  const [date, setDate] = useState<Date>(new Date());
+  const [formData, setFormData] = useState({
+    weight: '',
+    height: '',
+    chest: '',
+    waist: '',
+    hip: '',
+    rightBicep: '',
+    leftBicep: '',
+    rightForearm: '',
+    leftForearm: '',
+    rightThigh: '',
+    leftThigh: '',
+    rightCalf: '',
+    leftCalf: '',
+    bodyFat: '',
+    notes: ''
+  });
+
+  // Dados anteriores simulados (em uma aplicação real, viria do banco de dados)
+  const previousData = {
+    weight: '83.0',
+    chest: '101.5',
+    waist: '85',
+    hip: '98',
+    rightBicep: '38',
+    leftBicep: '37.5',
+    rightForearm: '28',
+    leftForearm: '27.5',
+    rightThigh: '58',
+    leftThigh: '57.5',
+    rightCalf: '36',
+    leftCalf: '35.5',
+    bodyFat: '15.2'
+  };
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleSubmit = () => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
+    // Validação básica
+    if (!formData.weight || !formData.height) {
+      toast({
+        title: 'Campos obrigatórios',
+        description: 'Por favor, preencha pelo menos o peso e a altura.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    // Simular salvamento (em uma aplicação real, salvaria no banco de dados)
+    toast({
+      title: 'Parabéns! Progresso salvo com sucesso! 🔥',
+      description: 'Seus dados foram registrados. Continue assim!',
+      className: 'bg-gradient-to-r from-yellow-400 to-orange-400 text-white border-0',
+    });
+
+    // Limpar formulário
+    setFormData({
+      weight: '',
+      height: '',
+      chest: '',
+      waist: '',
+      hip: '',
+      rightBicep: '',
+      leftBicep: '',
+      rightForearm: '',
+      leftForearm: '',
+      rightThigh: '',
+      leftThigh: '',
+      rightCalf: '',
+      leftCalf: '',
+      bodyFat: '',
+      notes: ''
+    });
+  };
+
+  const MeasurementField = ({ 
+    label, 
+    field, 
+    previousValue, 
+    helpText 
+  }: { 
+    label: string; 
+    field: string; 
+    previousValue?: string; 
+    helpText?: string; 
+  }) => (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2">
+        <Label htmlFor={field} className="text-sm font-medium text-gray-700">
+          {label}
+        </Label>
+        {helpText && (
+          <HelpCircle className="h-4 w-4 text-gray-400 cursor-help" />
+        )}
+      </div>
+      <div className="flex items-center gap-3">
+        <Input
+          id={field}
+          type="number"
+          placeholder="0"
+          value={formData[field as keyof typeof formData]}
+          onChange={(e) => handleInputChange(field, e.target.value)}
+          className="flex-1"
+        />
+        {previousValue && (
+          <span className="text-xs text-gray-500 min-w-[100px]">
+            Anterior: {previousValue} cm
+          </span>
+        )}
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 to-accent/10 pb-20">
@@ -36,49 +180,240 @@ const Agenda = () => {
 
       {/* Main Content */}
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex flex-col items-center justify-center min-h-[60vh]">
-          <Card className="w-full max-w-md text-center">
-            <CardHeader className="pb-4">
-              <div className="w-20 h-20 bg-gradient-to-br from-primary/20 to-accent/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <Scale className="h-10 w-10 text-primary" />
-              </div>
-              <CardTitle className="text-2xl font-bold text-gray-900">
-                Calculadora de IMC
-              </CardTitle>
-              <CardDescription className="text-base text-gray-600">
-                Calcule seu Índice de Massa Corporal
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="p-4 rounded-xl warning-card-playfit">
-                  <div className="flex items-center justify-center mb-3">
-                    <Zap className="h-6 w-6 warning-icon mr-2" />
-                    <span className="font-semibold warning-title">Em Desenvolvimento</span>
+
+
+        <Card className="mb-8">
+          <CardContent className="p-6">
+            {/* Data da Medição */}
+            <div className="mb-6">
+              <Label className="text-sm font-medium text-gray-700 mb-2 block">
+                Data da Medição
+              </Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start text-left font-normal"
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {date ? format(date, 'PPP', { locale: ptBR }) : 'Selecionar data'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={date}
+                    onSelect={(selectedDate) => selectedDate && setDate(selectedDate)}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <Separator className="my-6" />
+
+            {/* Dados Principais */}
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <User className="h-5 w-5 text-yellow-500" />
+                Dados Principais
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="weight" className="text-sm font-medium text-gray-700">
+                    Peso (kg)
+                  </Label>
+                  <div className="flex items-center gap-3">
+                    <Input
+                      id="weight"
+                      type="number"
+                      step="0.1"
+                      placeholder="Ex: 70.5"
+                      value={formData.weight}
+                      onChange={(e) => handleInputChange('weight', e.target.value)}
+                      className="flex-1"
+                    />
+                    {previousData.weight && (
+                      <span className="text-xs text-gray-500 min-w-[100px]">
+                        Anterior: {previousData.weight} kg
+                      </span>
+                    )}
                   </div>
-                  <p className="text-sm warning-text leading-relaxed">
-                    Esta funcionalidade ainda não está disponível na versão atual do PlayFit. 
-                    Estamos trabalhando para trazer em breve recursos como:
-                  </p>
-                  <ul className="text-sm warning-text mt-3 space-y-1">
-                    <li>• Calculadora de IMC interativa</li>
-                    <li>• Histórico de medições</li>
-                    <li>• Gráficos de evolução</li>
-                    <li>• Classificação de peso ideal</li>
-                    <li>• Dicas personalizadas de saúde</li>
-                  </ul>
                 </div>
-                
-                <Button 
-                  onClick={() => navigate('/dashboard')}
-                  className="w-full gradient-bg text-primary-foreground font-semibold shadow-lg hover:shadow-xl"
-                >
-                  Voltar ao Dashboard
-                </Button>
+                <div className="space-y-2">
+                  <Label htmlFor="height" className="text-sm font-medium text-gray-700">
+                    Altura (cm)
+                  </Label>
+                  <Input
+                    id="height"
+                    type="number"
+                    placeholder="Ex: 175"
+                    value={formData.height}
+                    onChange={(e) => handleInputChange('height', e.target.value)}
+                  />
+                </div>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+
+            <Separator className="my-6" />
+
+            {/* Medidas Corporais */}
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <Ruler className="h-5 w-5 text-yellow-500" />
+                Medidas Corporais
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <MeasurementField
+                  label="Peitoral (cm)"
+                  field="chest"
+                  previousValue={previousData.chest}
+                  helpText="Medir na altura dos mamilos, com o peito expandido"
+                />
+                <MeasurementField
+                  label="Cintura (cm)"
+                  field="waist"
+                  previousValue={previousData.waist}
+                  helpText="Medir na altura do umbigo, sem forçar a barriga"
+                />
+                <MeasurementField
+                  label="Quadril (cm)"
+                  field="hip"
+                  previousValue={previousData.hip}
+                  helpText="Medir na parte mais larga do quadril"
+                />
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-700">
+                    Percentual de Gordura (%)
+                  </Label>
+                  <div className="flex items-center gap-3">
+                    <Input
+                      type="number"
+                      step="0.1"
+                      placeholder="Ex: 15.5"
+                      value={formData.bodyFat}
+                      onChange={(e) => handleInputChange('bodyFat', e.target.value)}
+                      className="flex-1"
+                    />
+                    {previousData.bodyFat && (
+                      <span className="text-xs text-gray-500 min-w-[100px]">
+                        Anterior: {previousData.bodyFat}%
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Membros Superiores */}
+              <div className="mt-6">
+                <h4 className="text-md font-medium text-gray-800 mb-3">Membros Superiores</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <MeasurementField
+                    label="Bíceps Direito (cm)"
+                    field="rightBicep"
+                    previousValue={previousData.rightBicep}
+                    helpText="Medir com o braço contraído"
+                  />
+                  <MeasurementField
+                    label="Bíceps Esquerdo (cm)"
+                    field="leftBicep"
+                    previousValue={previousData.leftBicep}
+                    helpText="Medir com o braço contraído"
+                  />
+                  <MeasurementField
+                    label="Antebraço Direito (cm)"
+                    field="rightForearm"
+                    previousValue={previousData.rightForearm}
+                    helpText="Medir na parte mais larga do antebraço"
+                  />
+                  <MeasurementField
+                    label="Antebraço Esquerdo (cm)"
+                    field="leftForearm"
+                    previousValue={previousData.leftForearm}
+                    helpText="Medir na parte mais larga do antebraço"
+                  />
+                </div>
+              </div>
+
+              {/* Membros Inferiores */}
+              <div className="mt-6">
+                <h4 className="text-md font-medium text-gray-800 mb-3">Membros Inferiores</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <MeasurementField
+                    label="Coxa Direita (cm)"
+                    field="rightThigh"
+                    previousValue={previousData.rightThigh}
+                    helpText="Medir na parte mais larga da coxa"
+                  />
+                  <MeasurementField
+                    label="Coxa Esquerda (cm)"
+                    field="leftThigh"
+                    previousValue={previousData.leftThigh}
+                    helpText="Medir na parte mais larga da coxa"
+                  />
+                  <MeasurementField
+                    label="Panturrilha Direita (cm)"
+                    field="rightCalf"
+                    previousValue={previousData.rightCalf}
+                    helpText="Medir na parte mais larga da panturrilha"
+                  />
+                  <MeasurementField
+                    label="Panturrilha Esquerda (cm)"
+                    field="leftCalf"
+                    previousValue={previousData.leftCalf}
+                    helpText="Medir na parte mais larga da panturrilha"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <Separator className="my-6" />
+
+            {/* Fotos de Progresso */}
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <Camera className="h-5 w-5 text-yellow-500" />
+                Fotos de Progresso
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {['Foto de Frente', 'Foto de Lado', 'Foto de Costas'].map((photoType) => (
+                  <div key={photoType} className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-yellow-400 transition-colors">
+                    <Camera className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm text-gray-600 mb-2">{photoType}</p>
+                    <Button variant="outline" size="sm" className="flex items-center gap-2">
+                      <Plus className="h-4 w-4" />
+                      Adicionar
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <Separator className="my-6" />
+
+            {/* Notas */}
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <Target className="h-5 w-5 text-yellow-500" />
+                Notas da Semana
+              </h3>
+              <Textarea
+                placeholder="Ex: Comecei a fazer cardio 3x na semana. Me senti com mais energia..."
+                value={formData.notes}
+                onChange={(e) => handleInputChange('notes', e.target.value)}
+                className="min-h-[100px]"
+              />
+            </div>
+
+            {/* Botão de Ação */}
+            <Button 
+              onClick={handleSubmit}
+              className="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 text-lg shadow-lg hover:shadow-xl transition-all"
+            >
+              Salvar Meu Progresso
+            </Button>
+          </CardContent>
+        </Card>
       </main>
 
       {/* Bottom Navigation */}

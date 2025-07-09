@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Trash2, Plus, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Trash2, Plus, Calendar, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
 import { PlayFitLogo } from '@/components/ui/playfit-logo';
 import { ProfileDropdown } from '@/components/ui/profile-dropdown';
 import { supabase } from '@/integrations/supabase/client';
@@ -219,6 +219,12 @@ const CreateWorkout = () => {
   };
 
   const handleCompleteWorkout = async () => {
+    // Verificar se usuário está logado
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
     // Validar campos e destacar erros
     if (!validateFields()) {
       toast({
@@ -350,6 +356,26 @@ const CreateWorkout = () => {
           </div>
         </div>
       </header>
+
+      {/* Aviso para visitantes */}
+      {!user && (
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+            <div className="flex items-center">
+              <AlertTriangle className="h-5 w-5 text-amber-600 mr-2" />
+              <div className="text-sm text-amber-800">
+                <strong>Você está navegando como visitante.</strong> Para salvar este treino, 
+                <button 
+                  onClick={() => navigate('/login')}
+                  className="text-amber-600 hover:text-amber-800 underline ml-1"
+                >
+                  faça login aqui
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       <main className={`max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 ${isEditing ? 'py-12' : 'py-8'}`}>

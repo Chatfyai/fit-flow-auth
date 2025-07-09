@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Activity, Calendar, TrendingUp, LogOut, Dumbbell, Clock, Plus, User, Edit2, Trophy } from 'lucide-react';
+import { Activity, Calendar, TrendingUp, LogOut, Dumbbell, Clock, Plus, User, Edit2, Trophy, Award, Footprints, CalendarCheck, Flame, Target } from 'lucide-react';
 import { Exercise, WorkoutDay, WeeklySchedule, Workout } from '@/types/workout';
 import { BottomNavigation } from '@/components/ui/bottom-navigation';
 import { ProgressIndicator, LoadingSpinner } from '@/components/ui/progress-indicator';
@@ -28,32 +28,102 @@ const Dashboard = () => {
   const [todaysWorkout, setTodaysWorkout] = useState<WorkoutDay[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Verificação de segurança - se não há usuário autenticado, redireciona para login
-  if (!user) {
-    navigate('/login');
-    return null;
-  }
+  // Dados de demonstração para visitantes
+  const demoData = {
+    workoutSessions: [
+      {
+        id: 'demo-1',
+        date: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        duration: 45,
+        workout_id: 'demo-workout-1',
+        notes: 'Treino Push - Concluído'
+      },
+      {
+        id: 'demo-2',
+        date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        duration: 40,
+        workout_id: 'demo-workout-2',
+        notes: 'Treino Pull - Concluído'
+      },
+      {
+        id: 'demo-3',
+        date: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        duration: 35,
+        workout_id: 'demo-workout-3',
+        notes: 'Treino Legs - Concluído'
+      },
+      {
+        id: 'demo-4',
+        date: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        duration: 50,
+        workout_id: 'demo-workout-4',
+        notes: 'Treino Push - Concluído'
+      }
+    ],
+    todaysWorkout: [
+      {
+        letter: 'A',
+        name: 'Treino Push',
+        exercises: [
+          {
+            id: 'demo-ex-1',
+            name: 'Supino reto',
+            series: 3,
+            repetitions: '12',
+            variation: 'Barra',
+            rest_time: 90
+          },
+          {
+            id: 'demo-ex-2',
+            name: 'Desenvolvimento com halteres',
+            series: 3,
+            repetitions: '10',
+            variation: 'Sentado',
+            rest_time: 60
+          }
+        ]
+      }
+    ]
+  };
+
+  // Usar dados reais se logado, demo se não logado
+  const finalWorkoutSessions = user ? workoutSessions : demoData.workoutSessions;
+  const finalTodaysWorkout = user ? todaysWorkout : demoData.todaysWorkout;
 
   const fetchData = async () => {
+    if (!user) {
+      // Se não estiver logado, apenas define loading como false
+      setLoading(false);
+      return;
+    }
+    
     try {
-      // Calcular primeiro e último dia do mês atual
+      // Calcular início da semana atual para garantir que incluímos todas as sessões relevantes
       const today = new Date();
-      const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-      const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      const startOfWeek = new Date(today);
+      const dayOfWeek = today.getDay(); // 0 = domingo, 1 = segunda, etc.
+      const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+      startOfWeek.setDate(today.getDate() - daysToSubtract);
+      startOfWeek.setHours(0, 0, 0, 0);
       
-      // Fetch workout sessions do mês atual (sem limit para pegar todos os treinos)
+      // Buscar sessões das últimas 4 semanas para garantir que temos dados suficientes
+      const fourWeeksAgo = new Date(startOfWeek);
+      fourWeeksAgo.setDate(startOfWeek.getDate() - 28);
+      
+      // Fetch workout sessions das últimas 4 semanas (formato YYYY-MM-DD)
       const { data: sessionsData, error: sessionsError } = await supabase
         .from('workout_sessions')
         .select('*')
-        .gte('date', firstDayOfMonth.toISOString())
-        .lte('date', lastDayOfMonth.toISOString())
+        .gte('date', fourWeeksAgo.toISOString().split('T')[0])
+        .lte('date', today.toISOString().split('T')[0])
         .order('date', { ascending: false });
 
       if (sessionsError) {
         console.error('Error fetching workout sessions:', sessionsError);
       } else {
         setWorkoutSessions(sessionsData || []);
-        console.log('📅 Sessões do mês carregadas:', sessionsData?.length || 0);
+        console.log('📅 Sessões das últimas 4 semanas carregadas:', sessionsData?.length || 0);
+        console.log('🗓️ Período buscado:', fourWeeksAgo.toISOString().split('T')[0], 'até', today.toISOString().split('T')[0]);
       }
 
       // Fetch workouts
@@ -86,9 +156,7 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    if (user) {
-      fetchData();
-    }
+    fetchData();
   }, [user]);
 
   // Atualizar dados automaticamente quando voltar para o dashboard
@@ -107,12 +175,25 @@ const Dashboard = () => {
       }
     };
 
+    // Verificar se o usuário acabou de completar um treino
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'workout_completed' && user) {
+        console.log('🏆 Treino completado detectado, atualizando dados...');
+        setTimeout(() => {
+          fetchData();
+          localStorage.removeItem('workout_completed');
+        }, 1000);
+      }
+    };
+
     window.addEventListener('focus', handleFocus);
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('storage', handleStorageChange);
     
     return () => {
       window.removeEventListener('focus', handleFocus);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('storage', handleStorageChange);
     };
   }, [user]);
 
@@ -165,8 +246,11 @@ const Dashboard = () => {
     return 'Séries não definidas';
   };
 
-  const thisWeekSessions = workoutSessions.filter(session => {
-    const sessionDate = new Date(session.date);
+  const thisWeekSessions = finalWorkoutSessions.filter(session => {
+    // Normalizar a data da sessão para comparação
+    const sessionDateString = session.date.split('T')[0]; // Pegar apenas YYYY-MM-DD
+    const sessionDate = new Date(sessionDateString + 'T12:00:00'); // Meio-dia para evitar problemas de fuso horário
+    
     const today = new Date();
     
     // Calcular início da semana (segunda-feira)
@@ -186,7 +270,8 @@ const Dashboard = () => {
     // Debug: Log das sessões para verificar se estão sendo contadas corretamente
     if (isInThisWeek) {
       console.log('📊 Sessão desta semana encontrada:', {
-        date: session.date,
+        originalDate: session.date,
+        sessionDateString: sessionDateString,
         sessionDate: sessionDate.toLocaleDateString('pt-BR'),
         startOfWeek: `Segunda ${startOfWeek.toLocaleDateString('pt-BR')}`,
         endOfWeek: `Domingo ${endOfWeek.toLocaleDateString('pt-BR')}`,
@@ -242,6 +327,78 @@ const Dashboard = () => {
     }
   };
 
+  // Função para obter os últimos emblemas conquistados
+  const getRecentBadges = () => {
+    const badges = [];
+    const today = new Date();
+
+    // Primeiro Passo - Completou pelo menos 1 treino
+    if (totalWorkouts >= 1) {
+      const firstWorkout = workoutSessions.length > 0 ? workoutSessions[0] : null;
+      badges.push({
+        id: 'primeiro-passo',
+        title: 'Primeiro Passo',
+        icon: <Footprints />,
+        achieved: true,
+        date: firstWorkout?.date || today.toISOString().split('T')[0]
+      });
+    }
+
+    // Início Forte - Completou pelo menos 3 treinos
+    if (totalWorkouts >= 3) {
+      const thirdWorkout = workoutSessions.length >= 3 ? workoutSessions[2] : null;
+      badges.push({
+        id: 'inicio-forte',
+        title: 'Início Forte',
+        icon: <Flame />,
+        achieved: true,
+        date: thirdWorkout?.date || today.toISOString().split('T')[0]
+      });
+    }
+
+    // Semana Perfeita - Atingiu a meta semanal
+    if (thisWeekSessions.length >= weeklyGoal && weeklyGoal > 0) {
+      const lastSessionThisWeek = thisWeekSessions.length > 0 ? thisWeekSessions[thisWeekSessions.length - 1] : null;
+      badges.push({
+        id: 'semana-perfeita',
+        title: 'Semana Perfeita',
+        icon: <CalendarCheck />,
+        achieved: true,
+        date: lastSessionThisWeek?.date || today.toISOString().split('T')[0]
+      });
+    }
+
+    // Compromisso Dourado - Completou pelo menos 10 treinos
+    if (totalWorkouts >= 10) {
+      const tenthWorkout = workoutSessions.length >= 10 ? workoutSessions[9] : null;
+      badges.push({
+        id: 'compromisso-dourado',
+        title: 'Compromisso Dourado',
+        icon: <Trophy />,
+        achieved: true,
+        date: tenthWorkout?.date || today.toISOString().split('T')[0]
+      });
+    }
+
+    // Hábito Criado - Completou pelo menos 21 treinos (formar hábito)
+    if (totalWorkouts >= 21) {
+      const twentyFirstWorkout = workoutSessions.length >= 21 ? workoutSessions[20] : null;
+      badges.push({
+        id: 'habito-criado',
+        title: 'Hábito Criado',
+        icon: <Target />,
+        achieved: true,
+        date: twentyFirstWorkout?.date || today.toISOString().split('T')[0]
+      });
+    }
+
+    // Filtrar apenas emblemas conquistados, ordenar por data e retornar os 3 mais recentes
+    return badges
+      .filter(badge => badge.achieved)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 3);
+  };
+
   // Mensagens motivacionais aleatórias
   const getMotivationalMessage = () => {
     const messages = [
@@ -266,8 +423,14 @@ const Dashboard = () => {
     weeklyGoal,
     progressPercentage: Math.round(progressPercentage),
     totalSessions: totalWorkouts,
-    allSessions: workoutSessions.map(s => ({ date: s.date, workout_id: s.workout_id }))
+    allSessions: workoutSessions.map(s => ({ date: s.date, workout_id: s.workout_id })),
+    filteredThisWeek: thisWeekSessions.map(s => ({ date: s.date, workout_id: s.workout_id }))
   });
+
+  // Debug adicional: Log das sessões da semana atual
+  console.log('🗓️ Sessões desta semana:', thisWeekSessions.length);
+  console.log('🎯 Meta semanal:', weeklyGoal);
+  console.log('📊 Porcentagem:', Math.round(progressPercentage), '%');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 to-accent/10 pb-20">
@@ -342,48 +505,65 @@ const Dashboard = () => {
 
           <Card className="hover:shadow-xl transition-all duration-300 ease-out">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-              <CardTitle className="text-sm font-medium text-gray-700">Última Meta Alcançada</CardTitle>
-              <Trophy className="h-5 w-5 text-yellow-500" />
+              <CardTitle className="text-sm font-medium text-gray-700">Últimos Emblemas</CardTitle>
+              <Award className="h-5 w-5 text-yellow-500" />
             </CardHeader>
             <CardContent>
               {(() => {
                 if (!user) {
                   return (
                     <>
-                      <div className="text-lg font-bold text-gray-900 mb-1">Perder 5kg</div>
-                      <p className="text-xs text-gray-500 mb-2">
-                        Concluída em 15/12/2024
-                      </p>
-                      <p className="text-xs text-green-600 font-medium">
-                        Parabéns! Continue assim! 🎉
+                      <div className="text-lg font-bold text-gray-900 mb-2">Nenhum emblema conquistado</div>
+                      <p className="text-xs text-gray-500">
+                        Faça login e comece a treinar para conquistar emblemas! 🏆
                       </p>
                     </>
                   );
                 }
 
-                const lastGoal = getLastCompletedGoal();
-                if (!lastGoal) {
+                const recentBadges = getRecentBadges();
+                if (recentBadges.length === 0) {
                   return (
                     <>
-                      <div className="text-lg font-bold text-gray-900 mb-2">Nenhuma meta concluída</div>
+                      <div className="text-lg font-bold text-gray-900 mb-2">Nenhum emblema conquistado</div>
                       <p className="text-xs text-gray-500">
-                        Defina e alcance suas primeiras metas! 🎯
+                        Comece a treinar para conquistar emblemas! 🏆
                       </p>
                     </>
                   );
                 }
                 
-                const completedDate = lastGoal.completedAt ? new Date(lastGoal.completedAt) : new Date(lastGoal.id);
+                // Garantir que sempre temos 3 slots, preenchendo com "Em Processo" se necessário
+                const badgeSlots = [...recentBadges];
+                while (badgeSlots.length < 3) {
+                  badgeSlots.push({
+                    id: `placeholder-${badgeSlots.length}`,
+                    title: 'Em Processo',
+                    icon: <Trophy />,
+                    achieved: false,
+                    date: ''
+                  });
+                }
+                
                 return (
-                  <>
-                    <div className="text-lg font-bold text-gray-900 mb-1">{lastGoal.title}</div>
-                    <p className="text-xs text-gray-500 mb-2">
-                      Concluída em {completedDate.toLocaleDateString('pt-BR')}
-                    </p>
-                    <p className="text-xs text-green-600 font-medium">
-                      {getMotivationalMessage()}
-                    </p>
-                  </>
+                  <div className="flex items-center justify-between gap-4">
+                    {badgeSlots.map((badge, index) => (
+                      <div key={badge.id} className="flex flex-col items-center text-center flex-1">
+                        <div 
+                          className="w-12 h-12 rounded-full flex items-center justify-center mb-2" 
+                          style={{ backgroundColor: badge.achieved ? '#FFD65A' : '#D1D5DB' }}
+                        >
+                          {React.cloneElement(badge.icon as React.ReactElement, { 
+                            className: "w-6 h-6",
+                            style: { color: badge.achieved ? '#FFE8B3' : '#9CA3AF' }
+                          })}
+                        </div>
+                        <div className={`text-xs font-medium ${badge.achieved ? 'text-gray-900' : 'text-gray-500'}`}>
+                          {badge.title}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 );
               })()}
             </CardContent>
@@ -413,9 +593,9 @@ const Dashboard = () => {
                     return demoWorkoutDays.includes(dateString);
                   }
 
-                  const hasSession = workoutSessions.some(session => {
-                    const sessionDate = session.date.split('T')[0]; // Pega apenas a data (YYYY-MM-DD)
-                    return sessionDate === dateString;
+                  const hasSession = finalWorkoutSessions.some(session => {
+                    const sessionDateString = session.date.split('T')[0]; // Pega apenas a data (YYYY-MM-DD)
+                    return sessionDateString === dateString;
                   });
                   
                   // Debug log para acompanhar quais dias têm treino
@@ -443,7 +623,7 @@ const Dashboard = () => {
                 const hideTooltip = () => setTooltip(prev => ({ ...prev, show: false }));
 
                 // Debug: Mostrar todas as sessões do mês
-                console.log('📅 Todas as sessões do mês:', workoutSessions.map(s => ({
+                console.log('📅 Todas as sessões do mês:', finalWorkoutSessions.map(s => ({
                   date: s.date.split('T')[0],
                   workout_id: s.workout_id
                 })));
@@ -492,7 +672,7 @@ const Dashboard = () => {
                         </div>
                       </div>
                       <div className="text-center text-xs text-gray-400">
-                        Total de treinos este mês: {workoutSessions.length}
+                        Total de treinos este mês: {finalWorkoutSessions.length}
                       </div>
                     </div>
 
@@ -513,13 +693,17 @@ const Dashboard = () => {
         {/* Today's Workout */}
         <Card className="mb-8 cursor-pointer hover:shadow-xl transition-all duration-300 ease-out hover:-translate-y-1" 
               onClick={() => {
+                if (!user) {
+                  navigate('/login');
+                  return;
+                }
                 const currentWorkout = workouts.find(workout => {
                   if (!workout.expiration_date) return true;
                   return new Date(workout.expiration_date) >= new Date();
                 });
                 navigate('/treino-do-dia', { 
                   state: { 
-                    workoutDays: todaysWorkout, 
+                    workoutDays: finalTodaysWorkout, 
                     date: new Date().toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
                     workoutId: currentWorkout?.id
                   } 
@@ -571,9 +755,9 @@ const Dashboard = () => {
                   </p>
                 </div>
               </div>
-            ) : todaysWorkout.length > 0 ? (
+            ) : finalTodaysWorkout.length > 0 ? (
               <div className="space-y-4">
-                {todaysWorkout.map((workoutDay) => (
+                {finalTodaysWorkout.map((workoutDay) => (
                   <div key={workoutDay.letter} className="p-6 bg-gradient-to-r from-primary/5 to-accent/5 rounded-2xl border border-primary/20 hover:shadow-md transition-all duration-300 ease-out">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center">

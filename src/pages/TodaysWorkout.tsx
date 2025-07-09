@@ -3,13 +3,50 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Clock, RotateCcw, CheckCircle, ChevronDown, ChevronUp, Play, Pause, ArrowLeft } from 'lucide-react';
+import { Clock, RotateCcw, CheckCircle, ChevronDown, ChevronUp, Play, Pause, ArrowLeft, AlertTriangle } from 'lucide-react';
 import { PlayFitLogo } from '@/components/ui/playfit-logo';
 import { ProfileDropdown } from '@/components/ui/profile-dropdown';
 import { useToast } from '@/hooks/use-toast';
 import { Exercise } from '@/types/workout';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+
+// Dados de demonstração para visitantes
+const demoWorkoutData = {
+  name: "Treino Push - Exemplo",
+  workout_days: [
+    {
+      letter: "A",
+      name: "Treino A",
+      exercises: [
+        {
+          id: "demo-1",
+          name: "Supino reto",
+          series: 3,
+          repetitions: "12",
+          variation: "Barra",
+          rest_time: 90
+        },
+        {
+          id: "demo-2", 
+          name: "Desenvolvimento com halteres",
+          series: 3,
+          repetitions: "10",
+          variation: "Sentado",
+          rest_time: 60
+        },
+        {
+          id: "demo-3",
+          name: "Tríceps testa",
+          series: 3,
+          repetitions: "15",
+          variation: "Barra W",
+          rest_time: 45
+        }
+      ]
+    }
+  ]
+};
 
 function SetTimer({ restTime, onComplete }: { restTime: number; onComplete?: () => void }) {
   const [timeLeft, setTimeLeft] = useState(restTime);
@@ -98,8 +135,14 @@ interface SetCardProps {
 
 function SetCard({ exerciseName, setNumber, repetitions, variation, restTime, onComplete, isCompleted, isStarted, onStart }: SetCardProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   const handleComplete = () => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
     onComplete();
     toast({
       title: 'Série concluída!',
@@ -115,6 +158,10 @@ function SetCard({ exerciseName, setNumber, repetitions, variation, restTime, on
   };
 
   const handleStart = () => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
     onStart();
     toast({
       title: 'Série iniciada!',
@@ -281,10 +328,14 @@ function ExerciseCard({ exercise, onSetComplete, onSetStart, completedSets, star
 const TodaysWorkout = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { toast } = useToast();
   const { user } = useAuth();
+  const { toast } = useToast();
+  
   const { workoutDays, date, workoutId } = location.state || {};
-
+  
+  // Usar dados de demonstração se não estiver logado
+  const finalWorkoutDays = user ? workoutDays : demoWorkoutData.workout_days;
+  
   // Track completion and start status for each set of each exercise
   const [exerciseSets, setExerciseSets] = useState<{ 
     [exerciseId: string]: { 
@@ -361,32 +412,34 @@ const TodaysWorkout = () => {
      cleanOldProgress(); // Verifica progressos antigos (mas não remove automaticamente)
      
      // Primeiro inicializar todos os exercícios
-     if (workoutDays && workoutDays.length > 0) {
-       workoutDays.forEach((workoutDay: any) => {
+     if (finalWorkoutDays && finalWorkoutDays.length > 0) {
+       finalWorkoutDays.forEach((workoutDay: any) => {
          workoutDay.exercises.forEach((exercise: Exercise) => {
            const seriesCount = exercise.series || 0;
            initializeExerciseSets(exercise.id, seriesCount);
          });
        });
        
-       // Depois carregar o progresso salvo
-       const savedProgress = loadProgressFromStorage();
-       if (Object.keys(savedProgress).length > 0) {
-         setExerciseSets(savedProgress);
-         toast({
-           title: '📥 Progresso restaurado',
-           description: 'Continuando de onde você parou!',
-           className: 'bg-blue-500 border-blue-600 text-white shadow-lg',
-           style: {
-             backgroundColor: '#3b82f6',
-             borderColor: '#2563eb',
-             color: '#ffffff'
-           },
-           duration: 3000
-         });
+       // Depois carregar o progresso salvo (apenas se estiver logado)
+       if (user) {
+         const savedProgress = loadProgressFromStorage();
+         if (Object.keys(savedProgress).length > 0) {
+           setExerciseSets(savedProgress);
+           toast({
+             title: '📥 Progresso restaurado',
+             description: 'Continuando de onde você parou!',
+             className: 'bg-blue-500 border-blue-600 text-white shadow-lg',
+             style: {
+               backgroundColor: '#3b82f6',
+               borderColor: '#2563eb',
+               color: '#ffffff'
+             },
+             duration: 3000
+           });
+         }
        }
      }
-   }, [workoutDays]);
+   }, [finalWorkoutDays, user]);
 
    // Aviso ao sair da página se houver progresso não salvo
    React.useEffect(() => {
@@ -429,6 +482,11 @@ const TodaysWorkout = () => {
   };
 
   const handleSetComplete = (exerciseId: string, setIndex: number) => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    
     const newExerciseSets = {
       ...exerciseSets,
       [exerciseId]: {
@@ -440,13 +498,16 @@ const TodaysWorkout = () => {
     };
     
     setExerciseSets(newExerciseSets);
-    saveProgressToStorage(newExerciseSets); // Salva automaticamente
-    
-    // Salvar progresso parcial no banco de dados a cada série completada
+    saveProgressToStorage(newExerciseSets);
     savePartialProgress(newExerciseSets);
   };
 
   const handleSetStart = (exerciseId: string, setIndex: number) => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    
     const newExerciseSets = {
       ...exerciseSets,
       [exerciseId]: {
@@ -458,11 +519,11 @@ const TodaysWorkout = () => {
     };
     
     setExerciseSets(newExerciseSets);
-    saveProgressToStorage(newExerciseSets); // Salva automaticamente
+    saveProgressToStorage(newExerciseSets);
   };
 
   // Calculate progress
-  const totalSets = workoutDays?.reduce((total: number, day: any) => {
+  const totalSets = finalWorkoutDays?.reduce((total: number, day: any) => {
     return total + day.exercises.reduce((dayTotal: number, exercise: Exercise) => {
       const seriesCount = exercise.series || 0;
       initializeExerciseSets(exercise.id, seriesCount);
@@ -569,11 +630,7 @@ const TodaysWorkout = () => {
   // Função para salvar a sessão de treino no banco de dados
   const saveWorkoutSession = async () => {
     if (!user) {
-      toast({
-        title: 'Erro',
-        description: 'Usuário não encontrado.',
-        variant: 'destructive'
-      });
+      navigate('/login');
       return false;
     }
 
@@ -710,6 +767,11 @@ const TodaysWorkout = () => {
   }
 
   const handleWorkoutComplete = async () => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
     if (completedSets === totalSets && totalSets > 0) {
       // Dispara a animação de confetes imediatamente
       createConfetti();
@@ -729,6 +791,9 @@ const TodaysWorkout = () => {
             boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
           }
         });
+        
+        // Sinalizar que o treino foi completado para atualizar o dashboard
+        localStorage.setItem('workout_completed', 'true');
         
         // Navegar de volta após um breve delay
         setTimeout(() => {
@@ -768,7 +833,7 @@ const TodaysWorkout = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/10 to-accent/10 py-8 px-4 pb-20">
+    <div className="min-h-screen bg-gradient-to-br from-primary/10 to-accent/10 pb-20">
       {/* Fixed Progress Bar para progresso >= 70% */}
       {showFixedProgress && (
         <div className="fixed top-0 left-0 right-0 z-50 transition-all duration-300">
@@ -824,6 +889,26 @@ const TodaysWorkout = () => {
         </div>
       </header>
 
+      {/* Aviso para visitantes */}
+      {!user && (
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+            <div className="flex items-center">
+              <AlertTriangle className="h-5 w-5 text-amber-600 mr-2" />
+              <div className="text-sm text-amber-800">
+                <strong>Treino de demonstração.</strong> Para salvar seu progresso real, 
+                <button 
+                  onClick={() => navigate('/login')}
+                  className="text-amber-600 hover:text-amber-800 underline ml-1"
+                >
+                  faça login aqui
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
         {/* Data */}
         <div className="mb-6">
@@ -859,7 +944,7 @@ const TodaysWorkout = () => {
           </div>
         )}
 
-        {!workoutDays || workoutDays.length === 0 ? (
+        {!finalWorkoutDays || finalWorkoutDays.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
               <Clock className="h-16 w-16 text-gray-400 mx-auto mb-4" />
@@ -869,7 +954,7 @@ const TodaysWorkout = () => {
           </Card>
         ) : (
           <div className="space-y-8">
-            {workoutDays.map((workoutDay: any) => (
+            {finalWorkoutDays.map((workoutDay: any) => (
               <div key={workoutDay.letter} className="space-y-4">
                 {/* Card do Treino */}
                 <Card className="bg-gradient-to-r from-primary/5 to-accent/5 border-primary/20 hover:shadow-lg transition-all duration-300">
