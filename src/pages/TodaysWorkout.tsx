@@ -276,12 +276,11 @@ function ExerciseCard({ exercise, onSetComplete, onSetStart, completedSets, star
   }, [allCompleted]);
 
   const handleCardClick = () => {
+    // Removido auto-inicialização - apenas mostrar controles
     if (!allCompleted && !isTimerActive && !isTimerCompleted) {
       setIsTimerActive(true);
       setIsTimerCompleted(false);
-      if (completedCount < totalSets) {
-        onSetStart(completedCount);
-      }
+      // Não iniciar automaticamente a série - deixar o usuário decidir
     }
   };
 
@@ -291,13 +290,10 @@ function ExerciseCard({ exercise, onSetComplete, onSetStart, completedSets, star
       setIsTimerActive(false);
       setIsTimerCompleted(false);
       
-      // Auto-iniciar próxima série se não for a última
+      // Não auto-iniciar próxima série - deixar o usuário decidir quando iniciar
+      // Se não for a última série, apenas resetar o estado para permitir nova iniciação
       if (completedCount + 1 < totalSets) {
-        setTimeout(() => {
-          setIsTimerActive(true);
-          setIsTimerCompleted(false);
-          onSetStart(completedCount + 1);
-        }, 1000);
+        // Apenas resetar estados, não iniciar automaticamente
       }
     }
   };
@@ -370,18 +366,39 @@ function ExerciseCard({ exercise, onSetComplete, onSetStart, completedSets, star
 
               </div>
               
-              {/* Botão concluir série */}
-              <Button
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleCompleteSet();
-                }}
-                className="bg-green-600 hover:bg-green-700 text-white"
-              >
-                <CheckCircle className="h-4 w-4 mr-1" />
-                Concluído
-              </Button>
+              <div className="flex gap-2">
+                {/* Botão iniciar série (se não há séries iniciadas ainda) */}
+                {!isInProgress && (
+                  <Button
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (completedCount < totalSets) {
+                        onSetStart(completedCount);
+                      }
+                    }}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    <Play className="h-4 w-4 mr-1" />
+                    Iniciar Série {completedCount + 1}
+                  </Button>
+                )}
+                
+                {/* Botão concluir série (só aparece se série foi iniciada) */}
+                {isInProgress && (
+                  <Button
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCompleteSet();
+                    }}
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    <CheckCircle className="h-4 w-4 mr-1" />
+                    Concluir Série {completedCount + 1}
+                  </Button>
+                )}
+              </div>
             </div>
           )}
 
@@ -397,7 +414,7 @@ function ExerciseCard({ exercise, onSetComplete, onSetStart, completedSets, star
           {/* Instruções iniciais */}
           {!isTimerActive && !isInProgress && !allCompleted && !isTimerCompleted && (
             <div className="text-center py-2 text-gray-500 text-sm">
-              Clique para iniciar o cronômetro
+              Clique para mostrar os controles do exercício
             </div>
           )}
         </div>
@@ -439,11 +456,15 @@ const TodaysWorkout = () => {
   // Função para obter a chave do localStorage baseada na data atual
   const getStorageKey = () => {
     const today = new Date().toISOString().split('T')[0];
-    return `workout_progress_${today}`;
+    const workoutIdentifier = workoutId || 'default';
+    return `workout_progress_${today}_${workoutIdentifier}`;
   };
 
   // Função para salvar o progresso no localStorage
   const saveProgressToStorage = (newExerciseSets: typeof exerciseSets) => {
+    // Só salvar se o usuário estiver logado
+    if (!user) return;
+    
     try {
       localStorage.setItem(getStorageKey(), JSON.stringify(newExerciseSets));
       console.log('💾 Progresso salvo localmente:', newExerciseSets);
@@ -454,6 +475,9 @@ const TodaysWorkout = () => {
 
   // Função para carregar o progresso do localStorage
   const loadProgressFromStorage = () => {
+    // Só carregar se o usuário estiver logado
+    if (!user) return {};
+    
     try {
       const saved = localStorage.getItem(getStorageKey());
       if (saved) {
@@ -473,13 +497,9 @@ const TodaysWorkout = () => {
       const today = new Date().toISOString().split('T')[0];
       Object.keys(localStorage).forEach(key => {
         if (key.startsWith('workout_progress_') && !key.includes(today)) {
-          // Verificar se há progresso não salvo antes de remover
-          const progressData = localStorage.getItem(key);
-          if (progressData) {
-            console.log('🗑️ Progresso antigo encontrado (será mantido por segurança):', key);
-            // Não remover automaticamente - deixar o usuário decidir
-            // localStorage.removeItem(key);
-          }
+          // Remover progressos de dias anteriores automaticamente
+          localStorage.removeItem(key);
+          console.log('🗑️ Progresso antigo removido:', key);
         }
       });
     } catch (error) {
@@ -507,22 +527,36 @@ const TodaysWorkout = () => {
        
        setExerciseSets(newExerciseSets);
        
-       // Depois carregar o progresso salvo (apenas se estiver logado)
-       if (user) {
+       // Depois carregar o progresso salvo (apenas se estiver logado e for o mesmo treino)
+       if (user && workoutId) {
          const savedProgress = loadProgressFromStorage();
          if (Object.keys(savedProgress).length > 0) {
-           setExerciseSets(savedProgress);
-           toast({
-             title: '📥 Progresso restaurado',
-             description: 'Continuando de onde você parou!',
-             className: 'bg-blue-500 border-blue-600 text-white shadow-lg',
-             style: {
-               backgroundColor: '#3b82f6',
-               borderColor: '#2563eb',
-               color: '#ffffff'
-             },
-             duration: 3000
-           });
+           // Verificar se o progresso salvo é compatível com o treino atual
+           const isCompatible = finalWorkoutDays.every((workoutDay: any) => 
+             workoutDay.exercises.every((exercise: Exercise) => 
+               savedProgress[exercise.id] && 
+               savedProgress[exercise.id].completed.length === (exercise.series || 0)
+             )
+           );
+           
+           if (isCompatible) {
+             setExerciseSets(savedProgress);
+             toast({
+               title: '📥 Progresso restaurado',
+               description: 'Continuando de onde você parou!',
+               className: 'bg-blue-500 border-blue-600 text-white shadow-lg',
+               style: {
+                 backgroundColor: '#3b82f6',
+                 borderColor: '#2563eb',
+                 color: '#ffffff'
+               },
+               duration: 3000
+             });
+           } else {
+             // Limpar progresso incompatível
+             localStorage.removeItem(getStorageKey());
+             console.log('🗑️ Progresso incompatível removido');
+           }
          }
        }
      }
