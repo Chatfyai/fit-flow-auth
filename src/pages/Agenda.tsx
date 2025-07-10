@@ -8,17 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Separator } from '@/components/ui/separator';
-import { 
-  Scale, 
-  Calendar as CalendarIcon, 
-  HelpCircle, 
-  Camera, 
-  Plus,
-  TrendingUp,
-  User,
-  Ruler,
-  Target
-} from 'lucide-react';
+import { Scale, Calendar as CalendarIcon, HelpCircle, Camera, Plus, TrendingUp, User, Ruler, Target } from 'lucide-react';
 import { BottomNavigation } from '@/components/ui/bottom-navigation';
 import { PlayFitLogo } from '@/components/ui/playfit-logo';
 import { ProfileDropdown } from '@/components/ui/profile-dropdown';
@@ -27,13 +17,19 @@ import { useToast } from '@/hooks/use-toast';
 import { useBodyMeasurements } from '@/hooks/useBodyMeasurements';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-
 const Agenda = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const { latestMeasurement, saveMeasurement, loading } = useBodyMeasurements();
-  
+  const {
+    user
+  } = useAuth();
+  const {
+    toast
+  } = useToast();
+  const {
+    latestMeasurement,
+    saveMeasurement,
+    loading
+  } = useBodyMeasurements();
   const [date, setDate] = useState<Date>(new Date());
   const [formData, setFormData] = useState({
     weight: '',
@@ -56,10 +52,11 @@ const Agenda = () => {
   // Dados anteriores vindos do banco de dados
   const getPreviousValue = (field: string): string | undefined => {
     if (!latestMeasurement) return undefined;
-    
-    const fieldMap: { [key: string]: keyof typeof latestMeasurement } = {
+    const fieldMap: {
+      [key: string]: keyof typeof latestMeasurement;
+    } = {
       weight: 'weight',
-      height: 'height', 
+      height: 'height',
       chest: 'chest',
       waist: 'waist',
       hip: 'hip',
@@ -73,19 +70,16 @@ const Agenda = () => {
       leftCalf: 'left_calf',
       bodyFat: 'body_fat'
     };
-
     const dbField = fieldMap[field];
     const value = latestMeasurement[dbField];
     return value ? String(value) : undefined;
   };
-
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
   };
-
   const handleSubmit = async () => {
     if (!user) {
       navigate('/login');
@@ -124,7 +118,6 @@ const Agenda = () => {
 
     // Salvar no banco de dados
     const success = await saveMeasurement(measurementData);
-    
     if (success) {
       // Limpar formulário apenas se salvou com sucesso
       setFormData({
@@ -146,47 +139,31 @@ const Agenda = () => {
       });
     }
   };
-
-  const MeasurementField = ({ 
-    label, 
-    field, 
-    previousValue, 
-    helpText 
-  }: { 
-    label: string; 
-    field: string; 
-    previousValue?: string; 
-    helpText?: string; 
-  }) => (
-    <div className="space-y-2">
+  const MeasurementField = ({
+    label,
+    field,
+    previousValue,
+    helpText
+  }: {
+    label: string;
+    field: string;
+    previousValue?: string;
+    helpText?: string;
+  }) => <div className="space-y-2">
       <div className="flex items-center gap-2">
         <Label htmlFor={field} className="text-sm font-medium text-gray-700">
           {label}
         </Label>
-        {helpText && (
-          <HelpCircle className="h-4 w-4 text-gray-400 cursor-help" />
-        )}
+        {helpText && <HelpCircle className="h-4 w-4 text-gray-400 cursor-help" />}
       </div>
       <div className="flex items-center gap-3">
-        <Input
-          id={field}
-          type="number"
-          placeholder="0"
-          value={formData[field as keyof typeof formData]}
-          onChange={(e) => handleInputChange(field, e.target.value)}
-          className="flex-1"
-        />
-        {previousValue && (
-          <span className="text-xs text-gray-500 min-w-[100px]">
+        <Input id={field} type="number" placeholder="0" value={formData[field as keyof typeof formData]} onChange={e => handleInputChange(field, e.target.value)} className="flex-1" />
+        {previousValue && <span className="text-xs text-gray-500 min-w-[100px]">
             Anterior: {previousValue} cm
-          </span>
-        )}
+          </span>}
       </div>
-    </div>
-  );
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/10 to-accent/10 pb-20">
+    </div>;
+  return <div className="min-h-screen bg-gradient-to-br from-primary/10 to-accent/10 pb-20">
       {/* Header */}
       <header className="bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -220,21 +197,15 @@ const Agenda = () => {
               </Label>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start text-left font-normal"
-                  >
+                  <Button variant="outline" className="w-full justify-start text-left font-normal">
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {date ? format(date, 'PPP', { locale: ptBR }) : 'Selecionar data'}
+                    {date ? format(date, 'PPP', {
+                    locale: ptBR
+                  }) : 'Selecionar data'}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={date}
-                    onSelect={(selectedDate) => selectedDate && setDate(selectedDate)}
-                    initialFocus
-                  />
+                  <Calendar mode="single" selected={date} onSelect={selectedDate => selectedDate && setDate(selectedDate)} initialFocus />
                 </PopoverContent>
               </Popover>
             </div>
@@ -253,33 +224,17 @@ const Agenda = () => {
                     Peso (kg)
                   </Label>
                   <div className="flex items-center gap-3">
-                    <Input
-                      id="weight"
-                      type="number"
-                      step="0.1"
-                      placeholder="Ex: 70.5"
-                      value={formData.weight}
-                      onChange={(e) => handleInputChange('weight', e.target.value)}
-                      className="flex-1"
-                    />
-                    {getPreviousValue('weight') && (
-                      <span className="text-xs text-gray-500 min-w-[100px]">
+                    <Input id="weight" type="number" step="0.1" placeholder="Ex: 70.5" value={formData.weight} onChange={e => handleInputChange('weight', e.target.value)} className="flex-1" />
+                    {getPreviousValue('weight') && <span className="text-xs text-gray-500 min-w-[100px]">
                         Anterior: {getPreviousValue('weight')} kg
-                      </span>
-                    )}
+                      </span>}
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="height" className="text-sm font-medium text-gray-700">
                     Altura (cm)
                   </Label>
-                  <Input
-                    id="height"
-                    type="number"
-                    placeholder="Ex: 175"
-                    value={formData.height}
-                    onChange={(e) => handleInputChange('height', e.target.value)}
-                  />
+                  <Input id="height" type="number" placeholder="Ex: 175" value={formData.height} onChange={e => handleInputChange('height', e.target.value)} />
                 </div>
               </div>
             </div>
@@ -293,42 +248,18 @@ const Agenda = () => {
                 Medidas Corporais
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <MeasurementField
-                  label="Peitoral (cm)"
-                  field="chest"
-                  previousValue={getPreviousValue('chest')}
-                  helpText="Medir na altura dos mamilos, com o peito expandido"
-                />
-                <MeasurementField
-                  label="Cintura (cm)"
-                  field="waist"
-                  previousValue={getPreviousValue('waist')}
-                  helpText="Medir na altura do umbigo, sem forçar a barriga"
-                />
-                <MeasurementField
-                  label="Quadril (cm)"
-                  field="hip"
-                  previousValue={getPreviousValue('hip')}
-                  helpText="Medir na parte mais larga do quadril"
-                />
+                <MeasurementField label="Peitoral (cm)" field="chest" previousValue={getPreviousValue('chest')} helpText="Medir na altura dos mamilos, com o peito expandido" />
+                <MeasurementField label="Cintura (cm)" field="waist" previousValue={getPreviousValue('waist')} helpText="Medir na altura do umbigo, sem forçar a barriga" />
+                <MeasurementField label="Quadril (cm)" field="hip" previousValue={getPreviousValue('hip')} helpText="Medir na parte mais larga do quadril" />
                 <div className="space-y-2">
                   <Label className="text-sm font-medium text-gray-700">
                     Percentual de Gordura (%)
                   </Label>
                   <div className="flex items-center gap-3">
-                    <Input
-                      type="number"
-                      step="0.1"
-                      placeholder="Ex: 15.5"
-                      value={formData.bodyFat}
-                      onChange={(e) => handleInputChange('bodyFat', e.target.value)}
-                      className="flex-1"
-                    />
-                    {getPreviousValue('bodyFat') && (
-                      <span className="text-xs text-gray-500 min-w-[100px]">
+                    <Input type="number" step="0.1" placeholder="Ex: 15.5" value={formData.bodyFat} onChange={e => handleInputChange('bodyFat', e.target.value)} className="flex-1" />
+                    {getPreviousValue('bodyFat') && <span className="text-xs text-gray-500 min-w-[100px]">
                         Anterior: {getPreviousValue('bodyFat')}%
-                      </span>
-                    )}
+                      </span>}
                   </div>
                 </div>
               </div>
@@ -337,30 +268,10 @@ const Agenda = () => {
               <div className="mt-6">
                 <h4 className="text-md font-medium text-gray-800 mb-3">Membros Superiores</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <MeasurementField
-                    label="Bíceps Direito (cm)"
-                    field="rightBicep"
-                    previousValue={getPreviousValue('rightBicep')}
-                    helpText="Medir com o braço contraído"
-                  />
-                  <MeasurementField
-                    label="Bíceps Esquerdo (cm)"
-                    field="leftBicep"
-                    previousValue={getPreviousValue('leftBicep')}
-                    helpText="Medir com o braço contraído"
-                  />
-                  <MeasurementField
-                    label="Antebraço Direito (cm)"
-                    field="rightForearm"
-                    previousValue={getPreviousValue('rightForearm')}
-                    helpText="Medir na parte mais larga do antebraço"
-                  />
-                  <MeasurementField
-                    label="Antebraço Esquerdo (cm)"
-                    field="leftForearm"
-                    previousValue={getPreviousValue('leftForearm')}
-                    helpText="Medir na parte mais larga do antebraço"
-                  />
+                  <MeasurementField label="Bíceps Direito (cm)" field="rightBicep" previousValue={getPreviousValue('rightBicep')} helpText="Medir com o braço contraído" />
+                  <MeasurementField label="Bíceps Esquerdo (cm)" field="leftBicep" previousValue={getPreviousValue('leftBicep')} helpText="Medir com o braço contraído" />
+                  <MeasurementField label="Antebraço Direito (cm)" field="rightForearm" previousValue={getPreviousValue('rightForearm')} helpText="Medir na parte mais larga do antebraço" />
+                  <MeasurementField label="Antebraço Esquerdo (cm)" field="leftForearm" previousValue={getPreviousValue('leftForearm')} helpText="Medir na parte mais larga do antebraço" />
                 </div>
               </div>
 
@@ -368,30 +279,10 @@ const Agenda = () => {
               <div className="mt-6">
                 <h4 className="text-md font-medium text-gray-800 mb-3">Membros Inferiores</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <MeasurementField
-                    label="Coxa Direita (cm)"
-                    field="rightThigh"
-                    previousValue={getPreviousValue('rightThigh')}
-                    helpText="Medir na parte mais larga da coxa"
-                  />
-                  <MeasurementField
-                    label="Coxa Esquerda (cm)"
-                    field="leftThigh"
-                    previousValue={getPreviousValue('leftThigh')}
-                    helpText="Medir na parte mais larga da coxa"
-                  />
-                  <MeasurementField
-                    label="Panturrilha Direita (cm)"
-                    field="rightCalf"
-                    previousValue={getPreviousValue('rightCalf')}
-                    helpText="Medir na parte mais larga da panturrilha"
-                  />
-                  <MeasurementField
-                    label="Panturrilha Esquerda (cm)"
-                    field="leftCalf"
-                    previousValue={getPreviousValue('leftCalf')}
-                    helpText="Medir na parte mais larga da panturrilha"
-                  />
+                  <MeasurementField label="Coxa Direita (cm)" field="rightThigh" previousValue={getPreviousValue('rightThigh')} helpText="Medir na parte mais larga da coxa" />
+                  <MeasurementField label="Coxa Esquerda (cm)" field="leftThigh" previousValue={getPreviousValue('leftThigh')} helpText="Medir na parte mais larga da coxa" />
+                  <MeasurementField label="Panturrilha Direita (cm)" field="rightCalf" previousValue={getPreviousValue('rightCalf')} helpText="Medir na parte mais larga da panturrilha" />
+                  <MeasurementField label="Panturrilha Esquerda (cm)" field="leftCalf" previousValue={getPreviousValue('leftCalf')} helpText="Medir na parte mais larga da panturrilha" />
                 </div>
               </div>
             </div>
@@ -399,24 +290,7 @@ const Agenda = () => {
             <Separator className="my-6" />
 
             {/* Fotos de Progresso */}
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <Camera className="h-5 w-5 text-yellow-500" />
-                Fotos de Progresso
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {['Foto de Frente', 'Foto de Lado', 'Foto de Costas'].map((photoType) => (
-                  <div key={photoType} className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-yellow-400 transition-colors">
-                    <Camera className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                    <p className="text-sm text-gray-600 mb-2">{photoType}</p>
-                    <Button variant="outline" size="sm" className="flex items-center gap-2">
-                      <Plus className="h-4 w-4" />
-                      Adicionar
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </div>
+            
 
             <Separator className="my-6" />
 
@@ -426,20 +300,11 @@ const Agenda = () => {
                 <Target className="h-5 w-5 text-yellow-500" />
                 Notas da Semana
               </h3>
-              <Textarea
-                placeholder="Ex: Comecei a fazer cardio 3x na semana. Me senti com mais energia..."
-                value={formData.notes}
-                onChange={(e) => handleInputChange('notes', e.target.value)}
-                className="min-h-[100px]"
-              />
+              <Textarea placeholder="Ex: Comecei a fazer cardio 3x na semana. Me senti com mais energia..." value={formData.notes} onChange={e => handleInputChange('notes', e.target.value)} className="min-h-[100px]" />
             </div>
 
             {/* Botão de Ação */}
-            <Button 
-              onClick={handleSubmit}
-              disabled={loading}
-              className="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 text-lg shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
-            >
+            <Button onClick={handleSubmit} disabled={loading} className="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 text-lg shadow-lg hover:shadow-xl transition-all disabled:opacity-50">
               {loading ? 'Salvando...' : 'Salvar Meu Progresso'}
             </Button>
           </CardContent>
@@ -448,8 +313,6 @@ const Agenda = () => {
 
       {/* Bottom Navigation */}
       <BottomNavigation />
-    </div>
-  );
+    </div>;
 };
-
-export default Agenda; 
+export default Agenda;
