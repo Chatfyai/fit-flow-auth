@@ -24,6 +24,7 @@ import { PlayFitLogo } from '@/components/ui/playfit-logo';
 import { ProfileDropdown } from '@/components/ui/profile-dropdown';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { useBodyMeasurements } from '@/hooks/useBodyMeasurements';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -31,6 +32,7 @@ const Agenda = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { latestMeasurement, saveMeasurement, loading } = useBodyMeasurements();
   
   const [date, setDate] = useState<Date>(new Date());
   const [formData, setFormData] = useState({
@@ -51,21 +53,30 @@ const Agenda = () => {
     notes: ''
   });
 
-  // Dados anteriores simulados (em uma aplicação real, viria do banco de dados)
-  const previousData = {
-    weight: '83.0',
-    chest: '101.5',
-    waist: '85',
-    hip: '98',
-    rightBicep: '38',
-    leftBicep: '37.5',
-    rightForearm: '28',
-    leftForearm: '27.5',
-    rightThigh: '58',
-    leftThigh: '57.5',
-    rightCalf: '36',
-    leftCalf: '35.5',
-    bodyFat: '15.2'
+  // Dados anteriores vindos do banco de dados
+  const getPreviousValue = (field: string): string | undefined => {
+    if (!latestMeasurement) return undefined;
+    
+    const fieldMap: { [key: string]: keyof typeof latestMeasurement } = {
+      weight: 'weight',
+      height: 'height', 
+      chest: 'chest',
+      waist: 'waist',
+      hip: 'hip',
+      rightBicep: 'right_bicep',
+      leftBicep: 'left_bicep',
+      rightForearm: 'right_forearm',
+      leftForearm: 'left_forearm',
+      rightThigh: 'right_thigh',
+      leftThigh: 'left_thigh',
+      rightCalf: 'right_calf',
+      leftCalf: 'left_calf',
+      bodyFat: 'body_fat'
+    };
+
+    const dbField = fieldMap[field];
+    const value = latestMeasurement[dbField];
+    return value ? String(value) : undefined;
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -75,7 +86,7 @@ const Agenda = () => {
     }));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!user) {
       navigate('/login');
       return;
@@ -91,31 +102,49 @@ const Agenda = () => {
       return;
     }
 
-    // Simular salvamento (em uma aplicação real, salvaria no banco de dados)
-    toast({
-      title: 'Parabéns! Progresso salvo com sucesso! 🔥',
-      description: 'Seus dados foram registrados. Continue assim!',
-      className: 'bg-gradient-to-r from-yellow-400 to-orange-400 text-white border-0',
-    });
+    // Preparar dados para salvamento
+    const measurementData = {
+      measurement_date: format(date, 'yyyy-MM-dd'),
+      weight: formData.weight ? parseFloat(formData.weight) : undefined,
+      height: formData.height ? parseFloat(formData.height) : undefined,
+      chest: formData.chest ? parseFloat(formData.chest) : undefined,
+      waist: formData.waist ? parseFloat(formData.waist) : undefined,
+      hip: formData.hip ? parseFloat(formData.hip) : undefined,
+      right_bicep: formData.rightBicep ? parseFloat(formData.rightBicep) : undefined,
+      left_bicep: formData.leftBicep ? parseFloat(formData.leftBicep) : undefined,
+      right_forearm: formData.rightForearm ? parseFloat(formData.rightForearm) : undefined,
+      left_forearm: formData.leftForearm ? parseFloat(formData.leftForearm) : undefined,
+      right_thigh: formData.rightThigh ? parseFloat(formData.rightThigh) : undefined,
+      left_thigh: formData.leftThigh ? parseFloat(formData.leftThigh) : undefined,
+      right_calf: formData.rightCalf ? parseFloat(formData.rightCalf) : undefined,
+      left_calf: formData.leftCalf ? parseFloat(formData.leftCalf) : undefined,
+      body_fat: formData.bodyFat ? parseFloat(formData.bodyFat) : undefined,
+      notes: formData.notes || undefined
+    };
 
-    // Limpar formulário
-    setFormData({
-      weight: '',
-      height: '',
-      chest: '',
-      waist: '',
-      hip: '',
-      rightBicep: '',
-      leftBicep: '',
-      rightForearm: '',
-      leftForearm: '',
-      rightThigh: '',
-      leftThigh: '',
-      rightCalf: '',
-      leftCalf: '',
-      bodyFat: '',
-      notes: ''
-    });
+    // Salvar no banco de dados
+    const success = await saveMeasurement(measurementData);
+    
+    if (success) {
+      // Limpar formulário apenas se salvou com sucesso
+      setFormData({
+        weight: '',
+        height: '',
+        chest: '',
+        waist: '',
+        hip: '',
+        rightBicep: '',
+        leftBicep: '',
+        rightForearm: '',
+        leftForearm: '',
+        rightThigh: '',
+        leftThigh: '',
+        rightCalf: '',
+        leftCalf: '',
+        bodyFat: '',
+        notes: ''
+      });
+    }
   };
 
   const MeasurementField = ({ 
@@ -233,9 +262,9 @@ const Agenda = () => {
                       onChange={(e) => handleInputChange('weight', e.target.value)}
                       className="flex-1"
                     />
-                    {previousData.weight && (
+                    {getPreviousValue('weight') && (
                       <span className="text-xs text-gray-500 min-w-[100px]">
-                        Anterior: {previousData.weight} kg
+                        Anterior: {getPreviousValue('weight')} kg
                       </span>
                     )}
                   </div>
@@ -267,19 +296,19 @@ const Agenda = () => {
                 <MeasurementField
                   label="Peitoral (cm)"
                   field="chest"
-                  previousValue={previousData.chest}
+                  previousValue={getPreviousValue('chest')}
                   helpText="Medir na altura dos mamilos, com o peito expandido"
                 />
                 <MeasurementField
                   label="Cintura (cm)"
                   field="waist"
-                  previousValue={previousData.waist}
+                  previousValue={getPreviousValue('waist')}
                   helpText="Medir na altura do umbigo, sem forçar a barriga"
                 />
                 <MeasurementField
                   label="Quadril (cm)"
                   field="hip"
-                  previousValue={previousData.hip}
+                  previousValue={getPreviousValue('hip')}
                   helpText="Medir na parte mais larga do quadril"
                 />
                 <div className="space-y-2">
@@ -295,9 +324,9 @@ const Agenda = () => {
                       onChange={(e) => handleInputChange('bodyFat', e.target.value)}
                       className="flex-1"
                     />
-                    {previousData.bodyFat && (
+                    {getPreviousValue('bodyFat') && (
                       <span className="text-xs text-gray-500 min-w-[100px]">
-                        Anterior: {previousData.bodyFat}%
+                        Anterior: {getPreviousValue('bodyFat')}%
                       </span>
                     )}
                   </div>
@@ -311,25 +340,25 @@ const Agenda = () => {
                   <MeasurementField
                     label="Bíceps Direito (cm)"
                     field="rightBicep"
-                    previousValue={previousData.rightBicep}
+                    previousValue={getPreviousValue('rightBicep')}
                     helpText="Medir com o braço contraído"
                   />
                   <MeasurementField
                     label="Bíceps Esquerdo (cm)"
                     field="leftBicep"
-                    previousValue={previousData.leftBicep}
+                    previousValue={getPreviousValue('leftBicep')}
                     helpText="Medir com o braço contraído"
                   />
                   <MeasurementField
                     label="Antebraço Direito (cm)"
                     field="rightForearm"
-                    previousValue={previousData.rightForearm}
+                    previousValue={getPreviousValue('rightForearm')}
                     helpText="Medir na parte mais larga do antebraço"
                   />
                   <MeasurementField
                     label="Antebraço Esquerdo (cm)"
                     field="leftForearm"
-                    previousValue={previousData.leftForearm}
+                    previousValue={getPreviousValue('leftForearm')}
                     helpText="Medir na parte mais larga do antebraço"
                   />
                 </div>
@@ -342,25 +371,25 @@ const Agenda = () => {
                   <MeasurementField
                     label="Coxa Direita (cm)"
                     field="rightThigh"
-                    previousValue={previousData.rightThigh}
+                    previousValue={getPreviousValue('rightThigh')}
                     helpText="Medir na parte mais larga da coxa"
                   />
                   <MeasurementField
                     label="Coxa Esquerda (cm)"
                     field="leftThigh"
-                    previousValue={previousData.leftThigh}
+                    previousValue={getPreviousValue('leftThigh')}
                     helpText="Medir na parte mais larga da coxa"
                   />
                   <MeasurementField
                     label="Panturrilha Direita (cm)"
                     field="rightCalf"
-                    previousValue={previousData.rightCalf}
+                    previousValue={getPreviousValue('rightCalf')}
                     helpText="Medir na parte mais larga da panturrilha"
                   />
                   <MeasurementField
                     label="Panturrilha Esquerda (cm)"
                     field="leftCalf"
-                    previousValue={previousData.leftCalf}
+                    previousValue={getPreviousValue('leftCalf')}
                     helpText="Medir na parte mais larga da panturrilha"
                   />
                 </div>
@@ -408,9 +437,10 @@ const Agenda = () => {
             {/* Botão de Ação */}
             <Button 
               onClick={handleSubmit}
-              className="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 text-lg shadow-lg hover:shadow-xl transition-all"
+              disabled={loading}
+              className="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 text-lg shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
             >
-              Salvar Meu Progresso
+              {loading ? 'Salvando...' : 'Salvar Meu Progresso'}
             </Button>
           </CardContent>
         </Card>
