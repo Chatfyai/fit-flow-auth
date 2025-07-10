@@ -28,67 +28,11 @@ const Dashboard = () => {
   const [todaysWorkout, setTodaysWorkout] = useState<WorkoutDay[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Dados de demonstração para visitantes
-  const demoData = {
-    workoutSessions: [
-      {
-        id: 'demo-1',
-        date: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        duration: 45,
-        workout_id: 'demo-workout-1',
-        notes: 'Treino Push - Concluído'
-      },
-      {
-        id: 'demo-2',
-        date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        duration: 40,
-        workout_id: 'demo-workout-2',
-        notes: 'Treino Pull - Concluído'
-      },
-      {
-        id: 'demo-3',
-        date: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        duration: 35,
-        workout_id: 'demo-workout-3',
-        notes: 'Treino Legs - Concluído'
-      },
-      {
-        id: 'demo-4',
-        date: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        duration: 50,
-        workout_id: 'demo-workout-4',
-        notes: 'Treino Push - Concluído'
-      }
-    ],
-    todaysWorkout: [
-      {
-        letter: 'A',
-        name: 'Treino Push',
-        exercises: [
-          {
-            id: 'demo-ex-1',
-            name: 'Supino reto',
-            series: 3,
-            repetitions: '12',
-            variation: 'Barra',
-            rest_time: 90
-          },
-          {
-            id: 'demo-ex-2',
-            name: 'Desenvolvimento com halteres',
-            series: 3,
-            repetitions: '10',
-            variation: 'Sentado',
-            rest_time: 60
-          }
-        ]
-      }
-    ]
-  };
 
-  // Usar dados reais se logado, demo se não logado
-  const finalWorkoutSessions = user ? workoutSessions : demoData.workoutSessions;
-  const finalTodaysWorkout = user ? todaysWorkout : demoData.todaysWorkout;
+
+  // Usar dados reais apenas se logado, caso contrário usar arrays vazios
+  const finalWorkoutSessions = user ? workoutSessions : [];
+  const finalTodaysWorkout = user ? todaysWorkout : [];
 
   const fetchData = async () => {
     if (!user) {
@@ -490,15 +434,15 @@ const Dashboard = () => {
               <TrendingUp className="h-5 w-5 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-gray-900 mb-3">{user ? Math.round(progressPercentage) : 65}%</div>
+              <div className="text-3xl font-bold text-gray-900 mb-3">{user ? Math.round(progressPercentage) : 0}%</div>
               <ProgressIndicator 
-                value={user ? thisWeekSessions.length : 4} 
-                max={user ? weeklyGoal : 6} 
+                value={user ? thisWeekSessions.length : 0} 
+                max={user ? weeklyGoal : 5} 
                 size="md"
                 className="mb-2"
               />
               <p className="text-xs text-gray-500">
-                {user ? `${thisWeekSessions.length} de ${weeklyGoal}` : '4 de 6'} treinos semanais
+                {user ? `${thisWeekSessions.length} de ${weeklyGoal}` : '0 de 5'} treinos semanais
               </p>
             </CardContent>
           </Card>
@@ -588,9 +532,8 @@ const Dashboard = () => {
                 // Função para verificar se há treino registrado em uma data específica
                 const hasWorkoutOnDate = (dateString: string) => {
                   if (!user) {
-                    // Para usuários não autenticados, mostrar dados de exemplo
-                    const demoWorkoutDays = ['2024-12-15', '2024-12-17', '2024-12-19', '2024-12-21', '2024-12-23'];
-                    return demoWorkoutDays.includes(dateString);
+                    // Para usuários não autenticados, não mostrar dados fictícios
+                    return false;
                   }
 
                   const hasSession = finalWorkoutSessions.some(session => {
@@ -672,7 +615,7 @@ const Dashboard = () => {
                         </div>
                       </div>
                       <div className="text-center text-xs text-gray-400">
-                        Total de treinos este mês: {finalWorkoutSessions.length}
+                        Total de treinos este mês: {user ? finalWorkoutSessions.length : 0}
                       </div>
                     </div>
 
