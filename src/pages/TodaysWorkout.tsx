@@ -244,11 +244,11 @@ interface ExerciseCardProps {
   onSetStart: (setIndex: number) => void;
   completedSets: boolean[];
   startedSets: boolean[];
-  isExpanded?: boolean; // Mantido para compatibilidade mas não usado
-  onToggle?: () => void; // Mantido para compatibilidade mas não usado
+  isOpen: boolean;
+  onToggle: () => void;
 }
 
-function ExerciseCard({ exercise, onSetComplete, onSetStart, completedSets, startedSets, isExpanded, onToggle }: ExerciseCardProps) {
+function ExerciseCard({ exercise, onSetComplete, onSetStart, completedSets, startedSets, isOpen, onToggle }: ExerciseCardProps) {
   const [isTimerActive, setIsTimerActive] = useState(false);
   const [isTimerCompleted, setIsTimerCompleted] = useState(false);
 
@@ -276,11 +276,19 @@ function ExerciseCard({ exercise, onSetComplete, onSetStart, completedSets, star
   }, [allCompleted]);
 
   const handleCardClick = () => {
-    // Removido auto-inicialização - apenas mostrar controles
-    if (!allCompleted && !isTimerActive && !isTimerCompleted) {
+    // Controlar abertura/fechamento do card
+    onToggle();
+    
+    // Só ativar timer se o card estiver sendo aberto
+    if (!isOpen && !allCompleted && !isTimerActive && !isTimerCompleted) {
       setIsTimerActive(true);
       setIsTimerCompleted(false);
-      // Não iniciar automaticamente a série - deixar o usuário decidir
+    }
+    
+    // Resetar estados quando fechando o card
+    if (isOpen) {
+      setIsTimerActive(false);
+      setIsTimerCompleted(false);
     }
   };
 
@@ -342,8 +350,8 @@ function ExerciseCard({ exercise, onSetComplete, onSetStart, completedSets, star
             </div>
           </div>
 
-          {/* Cronômetro e controles (aparecem quando ativo, em progresso ou timer completado) */}
-          {(isTimerActive || isInProgress || isTimerCompleted) && !allCompleted && (
+          {/* Cronômetro e controles (aparecem quando card está aberto e não está completo) */}
+          {isOpen && !allCompleted && (
             <div className={`flex items-center justify-between rounded-lg p-3 ${
               isTimerCompleted ? 'bg-green-50 border border-green-200' : 'bg-gray-50'
             }`}>
@@ -367,37 +375,24 @@ function ExerciseCard({ exercise, onSetComplete, onSetStart, completedSets, star
               </div>
               
               <div className="flex gap-2">
-                {/* Botão iniciar série (se não há séries iniciadas ainda) */}
-                {!isInProgress && (
-                  <Button
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (completedCount < totalSets) {
+                {/* Botão para concluir série */}
+                <Button
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (completedCount < totalSets) {
+                      // Sempre marcar como iniciada e depois concluir
+                      if (!isInProgress) {
                         onSetStart(completedCount);
                       }
-                    }}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                  >
-                    <Play className="h-4 w-4 mr-1" />
-                    Iniciar Série {completedCount + 1}
-                  </Button>
-                )}
-                
-                {/* Botão concluir série (só aparece se série foi iniciada) */}
-                {isInProgress && (
-                  <Button
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
                       handleCompleteSet();
-                    }}
-                    className="bg-green-600 hover:bg-green-700 text-white"
-                  >
-                    <CheckCircle className="h-4 w-4 mr-1" />
-                    Concluir Série {completedCount + 1}
-                  </Button>
-                )}
+                    }
+                  }}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                >
+                  <CheckCircle className="h-4 w-4 mr-1" />
+                  Concluído
+                </Button>
               </div>
             </div>
           )}
@@ -412,7 +407,7 @@ function ExerciseCard({ exercise, onSetComplete, onSetStart, completedSets, star
           )}
 
           {/* Instruções iniciais */}
-          {!isTimerActive && !isInProgress && !allCompleted && !isTimerCompleted && (
+          {!isOpen && !allCompleted && (
             <div className="text-center py-2 text-gray-500 text-sm">
               Clique para mostrar os controles do exercício
             </div>
@@ -442,7 +437,8 @@ const TodaysWorkout = () => {
     } 
   }>({});
 
-  // Removido estado de expansão - não é mais necessário
+  // Estado para controlar qual exercício está aberto (apenas um por vez)
+  const [openExerciseId, setOpenExerciseId] = useState<string | null>(null);
   
   // Estado para controlar o loading do salvamento da sessão
   const [isSavingSession, setIsSavingSession] = useState(false);
@@ -1115,8 +1111,14 @@ const TodaysWorkout = () => {
                         onSetStart={(setIndex) => handleSetStart(exercise.id, setIndex)}
                         completedSets={exerciseState.completed}
                         startedSets={exerciseState.started}
-                        isExpanded={false}
-                        onToggle={() => {}}
+                        isOpen={openExerciseId === exercise.id}
+                        onToggle={() => {
+                          if (openExerciseId === exercise.id) {
+                            setOpenExerciseId(null);
+                          } else {
+                            setOpenExerciseId(exercise.id);
+                          }
+                        }}
                       />
                     );
                   })}
