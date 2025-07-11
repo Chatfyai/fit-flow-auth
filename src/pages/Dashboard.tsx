@@ -11,6 +11,7 @@ import { ProgressIndicator, LoadingSpinner } from '@/components/ui/progress-indi
 import { Typewriter } from '@/components/ui/typewriter';
 import { PlayFitLogo } from '@/components/ui/playfit-logo';
 import { ProfileDropdown } from '@/components/ui/profile-dropdown';
+import { getCurrentLocalDate, dateToLocalDateString } from '@/lib/utils';
 
 interface WorkoutSession {
   id: string;
@@ -58,16 +59,18 @@ const Dashboard = () => {
       const { data: sessionsData, error: sessionsError } = await supabase
         .from('workout_sessions')
         .select('*')
-        .gte('date', fourWeeksAgo.toISOString().split('T')[0])
-        .lte('date', today.toISOString().split('T')[0])
+        .gte('date', dateToLocalDateString(fourWeeksAgo))
+        .lte('date', getCurrentLocalDate())
         .order('date', { ascending: false });
 
       if (sessionsError) {
         console.error('Error fetching workout sessions:', sessionsError);
       } else {
         setWorkoutSessions(sessionsData || []);
-        console.log('📅 Sessões das últimas 4 semanas carregadas:', sessionsData?.length || 0);
-        console.log('🗓️ Período buscado:', fourWeeksAgo.toISOString().split('T')[0], 'até', today.toISOString().split('T')[0]);
+        if (user) {
+          console.log('📅 Sessões das últimas 4 semanas carregadas:', sessionsData?.length || 0);
+          console.log('🗓️ Período buscado:', dateToLocalDateString(fourWeeksAgo), 'até', getCurrentLocalDate());
+        }
       }
 
       // Fetch workouts
@@ -80,7 +83,9 @@ const Dashboard = () => {
       if (workoutsError) {
         console.error('Error fetching workouts:', workoutsError);
       } else {
-        console.log('Fetched workouts:', workoutsData);
+        if (user) {
+          console.log('Fetched workouts:', workoutsData);
+        }
         // Convert the Json types to our frontend types
         const typedWorkouts: Workout[] = (workoutsData || []).map(workout => ({
           ...workout,
@@ -190,7 +195,7 @@ const Dashboard = () => {
     return 'Séries não definidas';
   };
 
-  const thisWeekSessions = finalWorkoutSessions.filter(session => {
+  const thisWeekSessions = user ? finalWorkoutSessions.filter(session => {
     // Normalizar a data da sessão para comparação
     const sessionDateString = session.date.split('T')[0]; // Pegar apenas YYYY-MM-DD
     const sessionDate = new Date(sessionDateString + 'T12:00:00'); // Meio-dia para evitar problemas de fuso horário
@@ -212,7 +217,7 @@ const Dashboard = () => {
     const isInThisWeek = sessionDate >= startOfWeek && sessionDate <= endOfWeek;
     
     // Debug: Log das sessões para verificar se estão sendo contadas corretamente
-    if (isInThisWeek) {
+    if (isInThisWeek && user) {
       console.log('📊 Sessão desta semana encontrada:', {
         originalDate: session.date,
         sessionDateString: sessionDateString,
@@ -224,25 +229,27 @@ const Dashboard = () => {
     }
     
     return isInThisWeek;
-  });
+  }) : [];
 
   // Calcular quantos dias da semana estão programados para treinar
   const getWeeklyGoal = () => {
+    if (!user) return 5; // Para usuários não logados, mostrar meta padrão
+    
     const activeWorkouts = workouts.filter(workout => {
       if (!workout.expiration_date) return true;
       return new Date(workout.expiration_date) >= new Date();
     });
 
-    if (activeWorkouts.length === 0) return 0;
+    if (activeWorkouts.length === 0) return 5; // Meta padrão se não houver workouts
 
     const currentWorkout = activeWorkouts[0];
-    if (!currentWorkout.weekly_schedule) return 3; // Fallback padrão
+    if (!currentWorkout.weekly_schedule) return 5; // Fallback padrão
 
     // Contar quantos dias da semana têm treinos programados
     const daysWithWorkouts = Object.values(currentWorkout.weekly_schedule)
       .filter((dayLetters: any) => Array.isArray(dayLetters) && dayLetters.length > 0).length;
     
-    return daysWithWorkouts || 3; // Fallback se não houver dias programados
+    return daysWithWorkouts || 5; // Fallback se não houver dias programados
   };
 
   // Função para buscar a última meta alcançada
@@ -275,6 +282,9 @@ const Dashboard = () => {
   const getRecentBadges = () => {
     const badges = [];
     const today = new Date();
+
+    // Só processar badges se o usuário estiver logado
+    if (!user) return [];
 
     // Primeiro Passo - Completou pelo menos 1 treino
     if (totalWorkouts >= 1) {
@@ -357,24 +367,26 @@ const Dashboard = () => {
     return messages[Math.floor(Math.random() * messages.length)];
   };
 
-  const totalWorkouts = workoutSessions.length;
+  const totalWorkouts = user ? workoutSessions.length : 0;
   const weeklyGoal = getWeeklyGoal();
-  const progressPercentage = weeklyGoal > 0 ? Math.min((thisWeekSessions.length / weeklyGoal) * 100, 100) : 0;
+  const progressPercentage = user && weeklyGoal > 0 ? Math.min((thisWeekSessions.length / weeklyGoal) * 100, 100) : 0;
 
-  // Debug: Log do progresso semanal
-  console.log('📈 Progresso Semanal:', {
-    thisWeekSessions: thisWeekSessions.length,
-    weeklyGoal,
-    progressPercentage: Math.round(progressPercentage),
-    totalSessions: totalWorkouts,
-    allSessions: workoutSessions.map(s => ({ date: s.date, workout_id: s.workout_id })),
-    filteredThisWeek: thisWeekSessions.map(s => ({ date: s.date, workout_id: s.workout_id }))
-  });
+  // Debug: Log do progresso semanal (apenas se logado)
+  if (user) {
+    console.log('📈 Progresso Semanal:', {
+      thisWeekSessions: thisWeekSessions.length,
+      weeklyGoal,
+      progressPercentage: Math.round(progressPercentage),
+      totalSessions: totalWorkouts,
+      allSessions: workoutSessions.map(s => ({ date: s.date, workout_id: s.workout_id })),
+      filteredThisWeek: thisWeekSessions.map(s => ({ date: s.date, workout_id: s.workout_id }))
+    });
 
-  // Debug adicional: Log das sessões da semana atual
-  console.log('🗓️ Sessões desta semana:', thisWeekSessions.length);
-  console.log('🎯 Meta semanal:', weeklyGoal);
-  console.log('📊 Porcentagem:', Math.round(progressPercentage), '%');
+    // Debug adicional: Log das sessões da semana atual
+    console.log('🗓️ Sessões desta semana:', thisWeekSessions.length);
+    console.log('🎯 Meta semanal:', weeklyGoal);
+    console.log('📊 Porcentagem:', Math.round(progressPercentage), '%');
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 to-accent/10 pb-20">
@@ -434,15 +446,15 @@ const Dashboard = () => {
               <TrendingUp className="h-5 w-5 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-gray-900 mb-3">{user ? Math.round(progressPercentage) : 0}%</div>
+              <div className="text-3xl font-bold text-gray-900 mb-3">{Math.round(progressPercentage)}%</div>
               <ProgressIndicator 
-                value={user ? thisWeekSessions.length : 0} 
-                max={user ? weeklyGoal : 5} 
+                value={thisWeekSessions.length} 
+                max={weeklyGoal} 
                 size="md"
                 className="mb-2"
               />
               <p className="text-xs text-gray-500">
-                {user ? `${thisWeekSessions.length} de ${weeklyGoal}` : '0 de 5'} treinos semanais
+                {thisWeekSessions.length} de {weeklyGoal} treinos semanais
               </p>
             </CardContent>
           </Card>
@@ -531,8 +543,8 @@ const Dashboard = () => {
 
                 // Função para verificar se há treino registrado em uma data específica
                 const hasWorkoutOnDate = (dateString: string) => {
-                  if (!user) {
-                    // Para usuários não autenticados, não mostrar dados fictícios
+                  if (!user || finalWorkoutSessions.length === 0) {
+                    // Para usuários não autenticados ou sem sessões, não mostrar dados fictícios
                     return false;
                   }
 
@@ -542,7 +554,7 @@ const Dashboard = () => {
                   });
                   
                   // Debug log para acompanhar quais dias têm treino
-                  if (hasSession) {
+                  if (hasSession && user) {
                     console.log(`✅ Treino encontrado para ${dateString}`);
                   }
                   
@@ -551,7 +563,7 @@ const Dashboard = () => {
 
                 const showTooltip = (e: React.MouseEvent, day: number) => {
                   const dayDate = new Date(year, month, day);
-                  const dateString = dayDate.toISOString().split('T')[0];
+                  const dateString = dateToLocalDateString(dayDate);
                   const hasTrained = hasWorkoutOnDate(dateString);
                   const status = hasTrained ? 'Treino concluído ✅' : 'Nenhum treino ⭕';
                   const rect = e.currentTarget.getBoundingClientRect();
@@ -565,11 +577,13 @@ const Dashboard = () => {
 
                 const hideTooltip = () => setTooltip(prev => ({ ...prev, show: false }));
 
-                // Debug: Mostrar todas as sessões do mês
-                console.log('📅 Todas as sessões do mês:', finalWorkoutSessions.map(s => ({
-                  date: s.date.split('T')[0],
-                  workout_id: s.workout_id
-                })));
+                // Debug: Mostrar todas as sessões do mês (apenas se logado)
+                if (user) {
+                  console.log('📅 Todas as sessões do mês:', finalWorkoutSessions.map(s => ({
+                    date: s.date.split('T')[0],
+                    workout_id: s.workout_id
+                  })));
+                }
 
                 return (
                   <div className="space-y-4">
@@ -577,7 +591,7 @@ const Dashboard = () => {
                       {Array.from({ length: daysInMonth }, (_, i) => {
                         const day = i + 1;
                         const dayDate = new Date(year, month, day);
-                        const dateString = dayDate.toISOString().split('T')[0];
+                        const dateString = dateToLocalDateString(dayDate);
                         const hasTrained = hasWorkoutOnDate(dateString);
                         const isToday = day === today.getDate();
                         
@@ -589,16 +603,18 @@ const Dashboard = () => {
                         return (
                           <div
                             key={day}
-                            className={`w-5 h-5 rounded-sm transition-colors duration-150 ${
+                            className={`w-7 h-7 rounded-sm transition-colors duration-150 flex items-center justify-center text-xs font-semibold ${
                               isFutureDay 
-                                ? 'bg-gray-100 border border-gray-200' // Dias futuros
+                                ? 'bg-gray-100 border border-gray-200 text-gray-400' // Dias futuros
                                 : hasTrained 
-                                  ? 'bg-yellow-500' // Treinou - amarelo
-                                  : 'bg-gray-300'   // Não treinou - cinza
+                                  ? 'bg-yellow-500 text-white' // Treinou - amarelo
+                                  : 'bg-gray-300 text-gray-600'   // Não treinou - cinza
                             } ${isToday ? 'border-2 border-yellow-600' : ''}`}
                             onMouseEnter={(e) => showTooltip(e, day)}
                             onMouseLeave={hideTooltip}
-                          />
+                          >
+                            {day}
+                          </div>
                         );
                       })}
                     </div>
@@ -606,16 +622,16 @@ const Dashboard = () => {
                     <div className="space-y-2">
                       <div className="flex justify-center items-center gap-4 text-xs text-gray-500">
                         <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-sm bg-yellow-500"></div>
+                          <div className="w-4 h-4 rounded-sm bg-yellow-500"></div>
                           <span>Treinou</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-sm bg-gray-300"></div>
+                          <div className="w-4 h-4 rounded-sm bg-gray-300"></div>
                           <span>Não Treinou</span>
                         </div>
                       </div>
                       <div className="text-center text-xs text-gray-400">
-                        Total de treinos este mês: {user ? finalWorkoutSessions.length : 0}
+                        Total de treinos este mês: {finalWorkoutSessions.length}
                       </div>
                     </div>
 

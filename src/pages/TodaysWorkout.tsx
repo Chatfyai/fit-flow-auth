@@ -4,12 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Clock, RotateCcw, CheckCircle, ChevronDown, ChevronUp, Play, Pause, ArrowLeft, AlertTriangle } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { PlayFitLogo } from '@/components/ui/playfit-logo';
 import { ProfileDropdown } from '@/components/ui/profile-dropdown';
 import { useToast } from '@/hooks/use-toast';
 import { Exercise } from '@/types/workout';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { getCurrentLocalDate } from '@/lib/utils';
 
 // Dados de demonstração para visitantes
 const demoWorkoutData = {
@@ -101,12 +103,23 @@ function SetTimer({ restTime, onComplete }: { restTime: number; onComplete?: () 
         <Button 
           size="sm" 
           variant="outline" 
-          onClick={isActive ? pause : start}
+          onClick={(e) => {
+            e.stopPropagation();
+            isActive ? pause() : start();
+          }}
           className="px-2"
         >
           {isActive ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
         </Button>
-        <Button size="sm" variant="outline" onClick={reset} className="px-2">
+        <Button 
+          size="sm" 
+          variant="outline" 
+          onClick={(e) => {
+            e.stopPropagation();
+            reset();
+          }} 
+          className="px-2"
+        >
           <RotateCcw className="h-3 w-3" />
         </Button>
       </div>
@@ -448,10 +461,13 @@ const TodaysWorkout = () => {
   const [showFixedProgress, setShowFixedProgress] = useState(false);
   const [showFaltaPouco, setShowFaltaPouco] = useState(true);
   const [faltaPoucoAlreadyShown, setFaltaPoucoAlreadyShown] = useState(false);
+  
+  // Estado para controlar o modal de confirmação
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   // Função para obter a chave do localStorage baseada na data atual
   const getStorageKey = () => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getCurrentLocalDate();
     const workoutIdentifier = workoutId || 'default';
     return `workout_progress_${today}_${workoutIdentifier}`;
   };
@@ -490,7 +506,7 @@ const TodaysWorkout = () => {
   // Função para limpar progressos de dias anteriores (SOMENTE localStorage, não afeta banco de dados)
   const cleanOldProgress = () => {
     try {
-      const today = new Date().toISOString().split('T')[0];
+      const today = getCurrentLocalDate();
       Object.keys(localStorage).forEach(key => {
         if (key.startsWith('workout_progress_') && !key.includes(today)) {
           // Remover progressos de dias anteriores automaticamente
@@ -594,6 +610,72 @@ const TodaysWorkout = () => {
     }
   };
 
+  // Função para salvar progresso incremental no banco de dados
+  const saveProgressToDatabase = async (currentExerciseSets: Record<string, {completed: boolean[], started: boolean[]}>) => {
+    if (!user) return;
+    
+    try {
+      const today = getCurrentLocalDate();
+      const currentCompletedSets = Object.values(currentExerciseSets).reduce((total, exercise) => {
+        return total + exercise.completed.filter(Boolean).length;
+      }, 0);
+      
+      // Verificar se já existe sessão para hoje
+      const { data: existingSessions, error: selectError } = await supabase
+        .from('workout_sessions')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('date', today)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (selectError) {
+        console.error('❌ Erro ao verificar sessão existente:', selectError);
+        return;
+      }
+
+      const isComplete = currentCompletedSets === totalSets;
+      const status = isComplete ? 'concluído' : 'em andamento';
+      
+      if (existingSessions && existingSessions.length > 0) {
+        // Atualizar sessão existente
+        const { error: updateError } = await supabase
+          .from('workout_sessions')
+          .update({
+            workout_id: workoutId || null,
+            notes: `Treino ${status} - ${currentCompletedSets}/${totalSets} séries`,
+            duration: Math.floor((Date.now() - new Date().setHours(0,0,0,0)) / 60000)
+          })
+          .eq('id', existingSessions[0].id);
+
+        if (updateError) {
+          console.error('❌ Erro ao atualizar progresso:', updateError);
+        } else {
+          console.log('✅ Progresso atualizado no banco:', { completedSets: currentCompletedSets, totalSets });
+        }
+      } else {
+        // Criar nova sessão
+        const { error: insertError } = await supabase
+          .from('workout_sessions')
+          .insert({
+            user_id: user.id,
+            workout_id: workoutId || null,
+            date: today,
+            duration: Math.floor((Date.now() - new Date().setHours(0,0,0,0)) / 60000),
+            notes: `Treino ${status} - ${currentCompletedSets}/${totalSets} séries`
+          });
+
+        if (insertError) {
+          console.error('❌ Erro ao criar nova sessão:', insertError);
+        } else {
+          console.log('✅ Nova sessão criada no banco:', { completedSets: currentCompletedSets, totalSets });
+        }
+      }
+    } catch (error) {
+      console.error('❌ Erro inesperado ao salvar progresso:', error);
+    }
+  };
+
   const handleSetComplete = (exerciseId: string, setIndex: number) => {
     if (!exerciseSets[exerciseId]) {
       console.error('❌ Exercício não encontrado:', exerciseId);
@@ -611,10 +693,11 @@ const TodaysWorkout = () => {
         }
       };
       
-      // Salvar progresso apenas se o usuário estiver logado
+      // Salvar progresso no localStorage
       if (user) {
         saveProgressToStorage(newExerciseSets);
-        savePartialProgress(newExerciseSets);
+        // Salvar progresso no banco de dados também
+        saveProgressToDatabase(newExerciseSets);
       }
       
       return newExerciseSets;
@@ -703,54 +786,7 @@ const TodaysWorkout = () => {
     }
   }, [showFixedProgress, faltaPoucoAlreadyShown]);
 
-  // Função para salvar progresso parcial no banco de dados
-  const savePartialProgress = async (currentExerciseSets: typeof exerciseSets) => {
-    if (!user) return;
-    
-    try {
-      const today = new Date().toISOString().split('T')[0];
-      const currentCompletedSets = Object.values(currentExerciseSets).reduce((total, exercise) => {
-        return total + exercise.completed.filter(Boolean).length;
-      }, 0);
-      
-      // Só salvar se houver progresso significativo (pelo menos 1 série completa)
-      if (currentCompletedSets === 0) return;
-      
-      // Verificar se já existe uma sessão para hoje
-      const { data: existingSession } = await supabase
-        .from('workout_sessions')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('date', today)
-        .maybeSingle();
 
-      if (existingSession) {
-        // Atualizar sessão existente com progresso parcial
-        await supabase
-          .from('workout_sessions')
-          .update({
-            workout_id: workoutId || null,
-            notes: `Progresso: ${currentCompletedSets}/${totalSets} séries concluídas`,
-            duration: Math.floor((Date.now() - new Date().setHours(0,0,0,0)) / 60000)
-          })
-          .eq('id', existingSession.id);
-      } else {
-        // Criar nova sessão com progresso parcial
-        await supabase.from('workout_sessions').insert({
-          user_id: user.id,
-          workout_id: workoutId || null,
-          date: today,
-          duration: Math.floor((Date.now() - new Date().setHours(0,0,0,0)) / 60000),
-          notes: `Progresso: ${currentCompletedSets}/${totalSets} séries concluídas`
-        });
-      }
-      
-      console.log(`💾 Progresso parcial salvo: ${currentCompletedSets}/${totalSets} séries`);
-    } catch (error) {
-      console.error('Erro ao salvar progresso parcial:', error);
-      // Não mostrar toast para não incomodar o usuário durante o treino
-    }
-  };
 
   // Função para salvar a sessão de treino no banco de dados
   const saveWorkoutSession = async () => {
@@ -762,28 +798,50 @@ const TodaysWorkout = () => {
     setIsSavingSession(true);
     
     try {
-      const today = new Date().toISOString().split('T')[0];
+      const today = getCurrentLocalDate();
       
-      // Verificar se já existe uma sessão para hoje
-      const { data: existingSession, error: selectError } = await supabase
+      // Verificar se já existem sessões para hoje (pode ter múltiplas)
+      const { data: existingSessions, error: selectError } = await supabase
         .from('workout_sessions')
         .select('id, notes')
         .eq('user_id', user.id)
         .eq('date', today)
-        .maybeSingle(); // Use maybeSingle() para evitar erro se não encontrar
+        .order('created_at', { ascending: false });
 
       if (selectError) {
-        console.error('❌ Erro ao verificar sessão existente:', selectError);
+        console.error('❌ Erro ao verificar sessões existentes:', selectError);
       }
 
-      if (existingSession) {
-        console.log('⚠️ Sessão já existe para hoje, atualizando...', existingSession);
+      if (existingSessions && existingSessions.length > 0) {
+        console.log('⚠️ Sessões já existem para hoje, atualizando a mais recente...', existingSessions);
+        
+        // Usar apenas a primeira sessão (mais recente)
+        const existingSession = existingSessions[0];
+        
+        // Remover sessões duplicadas se existirem
+        if (existingSessions.length > 1) {
+          const duplicateIds = existingSessions.slice(1).map(s => s.id);
+          const { error: deleteError } = await supabase
+            .from('workout_sessions')
+            .delete()
+            .in('id', duplicateIds);
+          
+          if (deleteError) {
+            console.error('❌ Erro ao remover sessões duplicadas:', deleteError);
+          } else {
+            console.log('🗑️ Sessões duplicadas removidas:', duplicateIds);
+          }
+        }
+        
+        // Atualizar a sessão existente
+        const isComplete = completedSets === totalSets;
+        const status = isComplete ? 'concluído' : 'finalizado';
         
         const { data, error } = await supabase
           .from('workout_sessions')
           .update({
             workout_id: workoutId || null,
-            notes: `Treino concluído com ${completedSets}/${totalSets} séries`,
+            notes: `Treino ${status} com ${completedSets}/${totalSets} séries`,
             duration: Math.floor((Date.now() - new Date().setHours(0,0,0,0)) / 60000) // Duração aproximada em minutos
           })
           .eq('id', existingSession.id)
@@ -816,12 +874,15 @@ const TodaysWorkout = () => {
         totalSets
       });
 
+      const isComplete = completedSets === totalSets;
+      const status = isComplete ? 'concluído' : 'finalizado';
+      
       const { data, error } = await supabase.from('workout_sessions').insert({
         user_id: user.id,
         workout_id: workoutId || null,
         date: today, // Formato YYYY-MM-DD
         duration: Math.floor((Date.now() - new Date().setHours(0,0,0,0)) / 60000), // Duração aproximada em minutos
-        notes: `Treino concluído com ${completedSets}/${totalSets} séries`
+        notes: `Treino ${status} com ${completedSets}/${totalSets} séries`
       }).select();
 
       if (error) {
@@ -897,63 +958,71 @@ const TodaysWorkout = () => {
       return;
     }
 
+    // Se o treino está completo, salvar diretamente
     if (completedSets === totalSets && totalSets > 0) {
-      // Dispara a animação de confetes imediatamente
-      createConfetti();
-      
-      // Salva a sessão no banco de dados
-      const sessionSaved = await saveWorkoutSession();
-      
-      if (sessionSaved) {
-        toast({
-          title: 'Treino Concluído!',
-          description: 'Parabéns! Seu treino foi salvo com sucesso.',
-          className: 'warning-card-playfit shadow-lg border-2',
-          style: {
-            backgroundColor: 'oklch(0.9 0.15 85)',
-            borderColor: 'oklch(0.85 0.12 75)',
-            color: '#ffffff',
-            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
-          }
-        });
-        
-        // Sinalizar que o treino foi completado para atualizar o dashboard
-        localStorage.setItem('workout_completed', 'true');
-        
-        // Navegar de volta após um breve delay
-        setTimeout(() => {
-          navigate('/dashboard');
-        }, 2000);
-      } else {
-        toast({
-          title: 'Treino Concluído!',
-          description: 'Parabéns! Houve um problema ao salvar, mas seu treino foi concluído.',
-          className: 'warning-card-playfit shadow-lg border-2',
-          style: {
-            backgroundColor: 'oklch(0.9 0.15 85)',
-            borderColor: 'oklch(0.85 0.12 75)',
-            color: '#ffffff',
-            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
-          }
-        });
-        
-        // Navegar de volta após um breve delay mesmo se não salvou
-        setTimeout(() => {
-          navigate('/dashboard');
-        }, 2000);
-      }
+      await finishWorkout(true);
     } else {
+      // Se há séries faltando, mostrar modal de confirmação
+      setShowConfirmDialog(true);
+    }
+  };
+
+  const finishWorkout = async (isComplete: boolean) => {
+    if (isComplete) {
+      // Dispara a animação de confetes para treino completo
+      createConfetti();
+    }
+    
+    // Salva a sessão no banco de dados
+    const sessionSaved = await saveWorkoutSession();
+    
+    if (sessionSaved) {
+      const title = isComplete ? 'Treino Concluído!' : 'Treino Finalizado!';
+      const description = isComplete 
+        ? 'Parabéns! Seu treino foi salvo com sucesso.'
+        : `Treino salvo com ${completedSets}/${totalSets} séries concluídas.`;
+      
       toast({
-        title: 'Treino incompleto',
-        description: `Você ainda tem ${totalSets - completedSets} séries para concluir.`,
-        className: 'bg-amber-500 border-amber-600 text-white shadow-lg [&>button]:text-white [&>button]:hover:text-gray-100',
+        title,
+        description,
+        className: 'warning-card-playfit shadow-lg border-2',
         style: {
-          backgroundColor: '#f59e0b',
-          borderColor: '#d97706',
+          backgroundColor: 'oklch(0.9 0.15 85)',
+          borderColor: 'oklch(0.85 0.12 75)',
           color: '#ffffff',
           boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
         }
       });
+      
+      // Sinalizar que o treino foi completado para atualizar o dashboard
+      localStorage.setItem('workout_completed', 'true');
+      
+      // Navegar de volta após um breve delay
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 2000);
+    } else {
+      const title = isComplete ? 'Treino Concluído!' : 'Treino Finalizado!';
+      const description = isComplete 
+        ? 'Parabéns! Houve um problema ao salvar, mas seu treino foi concluído.'
+        : 'Houve um problema ao salvar, mas seu progresso foi registrado.';
+      
+      toast({
+        title,
+        description,
+        className: 'warning-card-playfit shadow-lg border-2',
+        style: {
+          backgroundColor: 'oklch(0.9 0.15 85)',
+          borderColor: 'oklch(0.85 0.12 75)',
+          color: '#ffffff',
+          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
+        }
+      });
+      
+      // Navegar de volta após um breve delay mesmo se não salvou
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 2000);
     }
   };
 
@@ -1155,6 +1224,33 @@ const TodaysWorkout = () => {
           </div>
         )}
       </div>
+
+      {/* Modal de Confirmação para Treino Incompleto */}
+      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Finalizar treino incompleto?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você ainda tem <strong>{totalSets - completedSets} séries</strong> para concluir. 
+              Tem certeza que deseja finalizar o treino mesmo assim?
+              <br /><br />
+              O treino será salvo com o progresso atual ({completedSets}/{totalSets} séries) 
+              e contabilizado no seu dashboard.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Continuar Treinando</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={async () => {
+                setShowConfirmDialog(false);
+                await finishWorkout(false);
+              }}
+            >
+              Finalizar Mesmo Assim
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

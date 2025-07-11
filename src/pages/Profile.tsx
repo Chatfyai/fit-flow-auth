@@ -15,34 +15,79 @@ import {
   TrendingUp, 
   Target,
   Edit2,
-  Activity
+  Activity,
+  CheckCircle,
+  AlertCircle,
+  XCircle
 } from 'lucide-react';
 import { BottomNavigation } from '@/components/ui/bottom-navigation';
 import { PlayFitLogo } from '@/components/ui/playfit-logo';
 import { ProfileDropdown } from '@/components/ui/profile-dropdown';
 import { useAuth } from '@/contexts/AuthContext';
+import { useBodyMeasurements } from '@/hooks/useBodyMeasurements';
 
 const Profile = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { latestMeasurement, loading } = useBodyMeasurements();
 
-  // Dados simulados das medições atuais (em uma aplicação real, viria do banco de dados)
-  const currentMeasurements = {
-    weight: '81.5',
-    height: '175',
-    chest: '102',
-    waist: '83',
-    hip: '97',
-    rightBicep: '38.5',
-    leftBicep: '38',
-    rightForearm: '28.5',
-    leftForearm: '28',
-    rightThigh: '59',
-    leftThigh: '58.5',
-    rightCalf: '37',
-    leftCalf: '36.5',
-    bodyFat: '14.8',
-    lastUpdate: '2025-01-15'
+  // Dados padrão quando não há medições
+  const defaultMeasurements = {
+    weight: 0,
+    height: 0,
+    chest: 0,
+    waist: 0,
+    hip: 0,
+    right_bicep: 0,
+    left_bicep: 0,
+    right_forearm: 0,
+    left_forearm: 0,
+    right_thigh: 0,
+    left_thigh: 0,
+    right_calf: 0,
+    left_calf: 0,
+    body_fat: 0,
+    measurement_date: new Date().toISOString().split('T')[0]
+  };
+
+  // Usar dados reais do banco ou dados padrão
+  const currentMeasurements = latestMeasurement || defaultMeasurements;
+
+  // Função para calcular IMC
+  const calculateIMC = (weight: number, height: number) => {
+    if (!weight || !height) return 0;
+    const h = height / 100; // converter cm para metros
+    return parseFloat((weight / (h * h)).toFixed(1));
+  };
+
+  // Função para classificar IMC
+  const getIMCStatus = (imc: number) => {
+    if (imc === 0) return { status: 'Não informado', color: 'text-gray-600', bgColor: 'bg-gray-50', icon: AlertCircle };
+    if (imc < 18.5) return { status: 'Abaixo do peso', color: 'text-blue-600', bgColor: 'bg-blue-50', icon: AlertCircle };
+    if (imc >= 18.5 && imc < 25) return { status: 'Peso normal', color: 'text-green-600', bgColor: 'bg-green-50', icon: CheckCircle };
+    if (imc >= 25 && imc < 30) return { status: 'Sobrepeso', color: 'text-yellow-600', bgColor: 'bg-yellow-50', icon: AlertCircle };
+    if (imc >= 30 && imc < 35) return { status: 'Obesidade grau I', color: 'text-orange-600', bgColor: 'bg-orange-50', icon: AlertCircle };
+    if (imc >= 35 && imc < 40) return { status: 'Obesidade grau II', color: 'text-red-600', bgColor: 'bg-red-50', icon: XCircle };
+    return { status: 'Obesidade grau III', color: 'text-red-700', bgColor: 'bg-red-100', icon: XCircle };
+  };
+
+  // Função para avaliar percentual de gordura
+  const getBodyFatStatus = (bodyFat: number, gender: 'M' | 'F' = 'M') => {
+    if (!bodyFat) return { status: 'Não informado', color: 'text-gray-600', bgColor: 'bg-gray-50', icon: AlertCircle };
+    
+    if (gender === 'M') {
+      if (bodyFat < 6) return { status: 'Muito baixo', color: 'text-blue-600', bgColor: 'bg-blue-50', icon: AlertCircle };
+      if (bodyFat >= 6 && bodyFat < 14) return { status: 'Atlético', color: 'text-green-600', bgColor: 'bg-green-50', icon: CheckCircle };
+      if (bodyFat >= 14 && bodyFat < 18) return { status: 'Bom', color: 'text-green-600', bgColor: 'bg-green-50', icon: CheckCircle };
+      if (bodyFat >= 18 && bodyFat < 25) return { status: 'Médio', color: 'text-yellow-600', bgColor: 'bg-yellow-50', icon: AlertCircle };
+      return { status: 'Alto', color: 'text-red-600', bgColor: 'bg-red-50', icon: XCircle };
+    } else {
+      if (bodyFat < 16) return { status: 'Muito baixo', color: 'text-blue-600', bgColor: 'bg-blue-50', icon: AlertCircle };
+      if (bodyFat >= 16 && bodyFat < 20) return { status: 'Atlético', color: 'text-green-600', bgColor: 'bg-green-50', icon: CheckCircle };
+      if (bodyFat >= 20 && bodyFat < 25) return { status: 'Bom', color: 'text-green-600', bgColor: 'bg-green-50', icon: CheckCircle };
+      if (bodyFat >= 25 && bodyFat < 32) return { status: 'Médio', color: 'text-yellow-600', bgColor: 'bg-yellow-50', icon: AlertCircle };
+      return { status: 'Alto', color: 'text-red-600', bgColor: 'bg-red-50', icon: XCircle };
+    }
   };
 
   const getUserInitials = () => {
@@ -61,6 +106,20 @@ const Profile = () => {
     const date = new Date(user.created_at);
     return date.toLocaleDateString('pt-BR');
   };
+
+  const getLastUpdateDate = () => {
+    if (!latestMeasurement) return 'Nunca';
+    const date = new Date(latestMeasurement.measurement_date);
+    return date.toLocaleDateString('pt-BR');
+  };
+
+  // Calcular valores
+  const imc = calculateIMC(currentMeasurements.weight || 0, currentMeasurements.height || 0);
+  const imcStatus = getIMCStatus(imc);
+  const bodyFatStatus = getBodyFatStatus(currentMeasurements.body_fat || 0);
+
+  // Verificar se há dados para mostrar
+  const hasData = latestMeasurement !== null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 to-accent/10 pb-20">
@@ -86,8 +145,6 @@ const Profile = () => {
 
       {/* Main Content */}
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-
-
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Informações do Usuário */}
           <div className="lg:col-span-1">
@@ -151,115 +208,181 @@ const Profile = () => {
                   Dados Atuais
                 </CardTitle>
                 <CardDescription>
-                  Última atualização: {new Date(currentMeasurements.lastUpdate).toLocaleDateString('pt-BR')}
+                  {hasData ? `Última atualização: ${getLastUpdateDate()}` : 'Nenhuma medição registrada ainda'}
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {/* Dados Principais */}
-                <div className="mb-6">
-                  <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <User className="h-5 w-5 text-yellow-500" />
-                    Dados Principais
-                  </h4>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="text-center p-3 bg-gray-50 rounded-lg">
-                      <Scale className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
-                      <p className="text-2xl font-bold text-gray-900">{currentMeasurements.weight}</p>
-                      <p className="text-sm text-gray-600">Peso (kg)</p>
+                {!hasData ? (
+                  <div className="text-center py-8">
+                    <div className="mb-4">
+                      <Scale className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">Nenhuma medição encontrada</h3>
+                      <p className="text-gray-600 mb-4">Registre suas primeiras medições para começar a acompanhar sua evolução!</p>
                     </div>
-                    <div className="text-center p-3 bg-gray-50 rounded-lg">
-                      <Ruler className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
-                      <p className="text-2xl font-bold text-gray-900">{currentMeasurements.height}</p>
-                      <p className="text-sm text-gray-600">Altura (cm)</p>
-                    </div>
-                    <div className="text-center p-3 bg-gray-50 rounded-lg">
-                      <Target className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
-                      <p className="text-2xl font-bold text-gray-900">{currentMeasurements.bodyFat}</p>
-                      <p className="text-sm text-gray-600">Gordura (%)</p>
-                    </div>
-                    <div className="text-center p-3 bg-gray-50 rounded-lg">
-                      <Activity className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
-                      <p className="text-2xl font-bold text-gray-900">
-                        {Math.round(Number(currentMeasurements.weight) / Math.pow(Number(currentMeasurements.height) / 100, 2))}
-                      </p>
-                      <p className="text-sm text-gray-600">IMC</p>
-                    </div>
+                    <Button 
+                      onClick={() => navigate('/agenda')}
+                      className="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold"
+                    >
+                      Registrar Primeira Medição
+                    </Button>
                   </div>
-                </div>
+                ) : (
+                  <>
+                    {/* Dados Principais */}
+                    <div className="mb-6">
+                      <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <User className="h-5 w-5 text-yellow-500" />
+                        Dados Principais
+                      </h4>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="text-center p-3 bg-gray-50 rounded-lg">
+                          <Scale className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
+                          <p className="text-2xl font-bold text-gray-900">
+                            {currentMeasurements.weight || '-'}
+                          </p>
+                          <p className="text-sm text-gray-600">Peso (kg)</p>
+                        </div>
+                        <div className="text-center p-3 bg-gray-50 rounded-lg">
+                          <Ruler className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
+                          <p className="text-2xl font-bold text-gray-900">
+                            {currentMeasurements.height || '-'}
+                          </p>
+                          <p className="text-sm text-gray-600">Altura (cm)</p>
+                        </div>
+                        <div className="text-center p-3 bg-gray-50 rounded-lg">
+                          <Target className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
+                          <p className="text-2xl font-bold text-gray-900">
+                            {currentMeasurements.body_fat || '-'}
+                          </p>
+                          <p className="text-sm text-gray-600">Gordura (%)</p>
+                          <div className={`mt-2 p-2 rounded-lg ${bodyFatStatus.bgColor}`}>
+                            <div className="flex items-center justify-center gap-1">
+                              <bodyFatStatus.icon className={`h-4 w-4 ${bodyFatStatus.color}`} />
+                              <span className={`text-xs font-medium ${bodyFatStatus.color}`}>
+                                {bodyFatStatus.status}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-center p-3 bg-gray-50 rounded-lg">
+                          <Activity className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
+                          <p className="text-2xl font-bold text-gray-900">{imc || '-'}</p>
+                          <p className="text-sm text-gray-600">IMC</p>
+                          <div className={`mt-2 p-2 rounded-lg ${imcStatus.bgColor}`}>
+                            <div className="flex items-center justify-center gap-1">
+                              <imcStatus.icon className={`h-4 w-4 ${imcStatus.color}`} />
+                              <span className={`text-xs font-medium ${imcStatus.color}`}>
+                                {imcStatus.status}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
 
-                <Separator className="my-6" />
+                    {/* Status Resumo */}
+                    <div className="mb-6 p-4 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg border border-yellow-200">
+                      <h5 className="text-md font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                        <TrendingUp className="h-5 w-5 text-yellow-600" />
+                        Análise da Evolução
+                      </h5>
+                      <div className="text-sm text-gray-700 space-y-1">
+                        <p>• <strong>IMC:</strong> {imc || 'N/A'} - {imcStatus.status}</p>
+                        <p>• <strong>Gordura Corporal:</strong> {currentMeasurements.body_fat || 'N/A'}% - {bodyFatStatus.status}</p>
+                        <p className="text-xs text-gray-600 mt-2">
+                          {hasData && imc > 0 ? (
+                            imcStatus.status === 'Peso normal' && bodyFatStatus.status === 'Bom' ? 
+                              '✅ Excelente! Você está dentro dos parâmetros ideais.' :
+                              '⚠️ Considere ajustar sua alimentação e treino para otimizar seus resultados.'
+                          ) : (
+                            '📊 Registre suas medições para receber análises personalizadas.'
+                          )}
+                        </p>
+                      </div>
+                    </div>
 
-                {/* Medidas Corporais */}
-                <div className="mb-6">
-                  <h4 className="text-lg font-semibold text-gray-900 mb-4">Medidas Corporais (cm)</h4>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
-                      <span className="text-sm font-medium text-gray-700">Peitoral</span>
-                      <span className="text-sm font-semibold text-gray-900">{currentMeasurements.chest} cm</span>
-                    </div>
-                    <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
-                      <span className="text-sm font-medium text-gray-700">Cintura</span>
-                      <span className="text-sm font-semibold text-gray-900">{currentMeasurements.waist} cm</span>
-                    </div>
-                    <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
-                      <span className="text-sm font-medium text-gray-700">Quadril</span>
-                      <span className="text-sm font-semibold text-gray-900">{currentMeasurements.hip} cm</span>
-                    </div>
-                  </div>
-                </div>
+                    <Separator className="my-6" />
 
-                {/* Membros */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <h5 className="text-md font-medium text-gray-800 mb-3">Membros Superiores</h5>
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-700">Bíceps Direito</span>
-                        <span className="font-medium">{currentMeasurements.rightBicep} cm</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-700">Bíceps Esquerdo</span>
-                        <span className="font-medium">{currentMeasurements.leftBicep} cm</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-700">Antebraço Direito</span>
-                        <span className="font-medium">{currentMeasurements.rightForearm} cm</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-700">Antebraço Esquerdo</span>
-                        <span className="font-medium">{currentMeasurements.leftForearm} cm</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div>
-                    <h5 className="text-md font-medium text-gray-800 mb-3">Membros Inferiores</h5>
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-700">Coxa Direita</span>
-                        <span className="font-medium">{currentMeasurements.rightThigh} cm</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-700">Coxa Esquerda</span>
-                        <span className="font-medium">{currentMeasurements.leftThigh} cm</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-700">Panturrilha Direita</span>
-                        <span className="font-medium">{currentMeasurements.rightCalf} cm</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-700">Panturrilha Esquerda</span>
-                        <span className="font-medium">{currentMeasurements.leftCalf} cm</span>
+                    {/* Medidas Corporais */}
+                    <div className="mb-6">
+                      <h4 className="text-lg font-semibold text-gray-900 mb-4">Medidas Corporais (cm)</h4>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
+                          <span className="text-sm font-medium text-gray-700">Peitoral</span>
+                          <span className="text-sm font-semibold text-gray-900">
+                            {currentMeasurements.chest || '-'} cm
+                          </span>
+                        </div>
+                        <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
+                          <span className="text-sm font-medium text-gray-700">Cintura</span>
+                          <span className="text-sm font-semibold text-gray-900">
+                            {currentMeasurements.waist || '-'} cm
+                          </span>
+                        </div>
+                        <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
+                          <span className="text-sm font-medium text-gray-700">Quadril</span>
+                          <span className="text-sm font-semibold text-gray-900">
+                            {currentMeasurements.hip || '-'} cm
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>
+
+                    {/* Membros */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <h5 className="text-md font-medium text-gray-800 mb-3">Membros Superiores</h5>
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-700">Bíceps Direito</span>
+                            <span className="font-medium">{currentMeasurements.right_bicep || '-'} cm</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-700">Bíceps Esquerdo</span>
+                            <span className="font-medium">{currentMeasurements.left_bicep || '-'} cm</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-700">Antebraço Direito</span>
+                            <span className="font-medium">{currentMeasurements.right_forearm || '-'} cm</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-700">Antebraço Esquerdo</span>
+                            <span className="font-medium">{currentMeasurements.left_forearm || '-'} cm</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div>
+                        <h5 className="text-md font-medium text-gray-800 mb-3">Membros Inferiores</h5>
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-700">Coxa Direita</span>
+                            <span className="font-medium">{currentMeasurements.right_thigh || '-'} cm</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-700">Coxa Esquerda</span>
+                            <span className="font-medium">{currentMeasurements.left_thigh || '-'} cm</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-700">Panturrilha Direita</span>
+                            <span className="font-medium">{currentMeasurements.right_calf || '-'} cm</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-700">Panturrilha Esquerda</span>
+                            <span className="font-medium">{currentMeasurements.left_calf || '-'} cm</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
 
                 <div className="mt-6 pt-4 border-t">
                   <Button 
                     onClick={() => navigate('/agenda')}
                     className="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-semibold"
+                    disabled={loading}
                   >
-                    Atualizar Medições
+                    {loading ? 'Carregando...' : hasData ? 'Atualizar Medições' : 'Registrar Primeira Medição'}
                   </Button>
                 </div>
               </CardContent>
