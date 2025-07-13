@@ -83,6 +83,48 @@ export type Database = {
         }
         Relationships: []
       }
+      friend_groups: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          end_date: string | null
+          id: string
+          invite_code: string
+          is_active: boolean
+          max_members: number | null
+          name: string
+          scoring_type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          invite_code: string
+          is_active?: boolean
+          max_members?: number | null
+          name: string
+          scoring_type?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          invite_code?: string
+          is_active?: boolean
+          max_members?: number | null
+          name?: string
+          scoring_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       goal_progress: {
         Row: {
           created_at: string
@@ -114,6 +156,142 @@ export type Database = {
             columns: ["goal_id"]
             isOneToOne: false
             referencedRelation: "user_goals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_activities: {
+        Row: {
+          activity_date: string
+          activity_type: string
+          created_at: string
+          group_id: string
+          id: string
+          notes: string | null
+          score: number
+          user_id: string
+          workout_session_id: string | null
+        }
+        Insert: {
+          activity_date?: string
+          activity_type?: string
+          created_at?: string
+          group_id: string
+          id?: string
+          notes?: string | null
+          score?: number
+          user_id: string
+          workout_session_id?: string | null
+        }
+        Update: {
+          activity_date?: string
+          activity_type?: string
+          created_at?: string
+          group_id?: string
+          id?: string
+          notes?: string | null
+          score?: number
+          user_id?: string
+          workout_session_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_activities_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "friend_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_activities_workout_session_id_fkey"
+            columns: ["workout_session_id"]
+            isOneToOne: false
+            referencedRelation: "workout_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_invites: {
+        Row: {
+          created_at: string
+          email: string | null
+          expires_at: string
+          group_id: string
+          id: string
+          invite_code: string
+          invited_by: string
+          message: string | null
+          phone: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          expires_at?: string
+          group_id: string
+          id?: string
+          invite_code: string
+          invited_by: string
+          message?: string | null
+          phone?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          expires_at?: string
+          group_id?: string
+          id?: string
+          invite_code?: string
+          invited_by?: string
+          message?: string | null
+          phone?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_invites_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "friend_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_members: {
+        Row: {
+          group_id: string
+          id: string
+          is_admin: boolean
+          joined_at: string
+          total_score: number
+          user_id: string
+          workout_count: number
+        }
+        Insert: {
+          group_id: string
+          id?: string
+          is_admin?: boolean
+          joined_at?: string
+          total_score?: number
+          user_id: string
+          workout_count?: number
+        }
+        Update: {
+          group_id?: string
+          id?: string
+          is_admin?: boolean
+          joined_at?: string
+          total_score?: number
+          user_id?: string
+          workout_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "friend_groups"
             referencedColumns: ["id"]
           },
         ]
@@ -290,6 +468,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_invite_code: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       validate_exercise_structure: {
         Args: { exercise_data: Json }
         Returns: boolean

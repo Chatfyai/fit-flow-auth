@@ -22,6 +22,7 @@ import Badges from './pages/Badges';
 import Share from './pages/Share';
 import Challenge from './pages/Challenge';
 import JoinChallenge from './pages/JoinChallenge';
+import FriendGroup from './pages/FriendGroup';
 
 const queryClient = new QueryClient();
 
@@ -85,6 +86,7 @@ const AppContent = () => {
         <Route path="/goals" element={<Goals />} />
         <Route path="/nutrition" element={<Nutrition />} />
         <Route path="/share" element={<Share />} />
+        <Route path="/group/:groupId" element={<FriendGroup />} />
         <Route path="/challenge/:id" element={<Challenge />} />
         <Route path="/join-challenge/:id" element={<JoinChallenge />} />
         <Route path="*" element={<NotFound />} />
