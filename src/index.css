@@ -81,16 +81,60 @@
     @apply border-border;
   }
 
+  html {
+    scroll-behavior: smooth;
+    width: 100%;
+    overflow-x: hidden;
+  }
+
   body {
     @apply bg-background text-foreground;
     font-family: 'Inter', sans-serif;
     font-feature-settings: 'cv11', 'ss01';
     font-variation-settings: 'opsz' 32;
+    width: 100%;
+    overflow-x: hidden;
   }
 
   button, [role="button"] {
     min-height: 44px;
     min-width: 44px;
+  }
+
+  /* Scrollbar personalizada */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 4px;
+    transition: background 0.2s ease;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
+  }
+
+  /* Scrollbar para modo escuro */
+  @media (prefers-color-scheme: dark) {
+    ::-webkit-scrollbar-track {
+      background: #1f2937;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #4b5563;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #6b7280;
+    }
   }
 }
 
@@ -119,6 +163,77 @@
 
   .smooth-transition {
     transition: all 0.3s ease;
+  }
+
+  /* Scroll aprimorado para dispositivos móveis */
+  .mobile-scroll {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    overscroll-behavior: contain;
+  }
+
+  /* Classe para scroll suave em containers */
+  .smooth-scroll {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Garantir box-sizing correto para todos os elementos */
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  /* Prevenir overflow horizontal */
+  .overflow-x-hidden {
+    overflow-x: hidden;
+  }
+
+  /* Garantir margin simétrico */
+  .margin-center {
+    margin-left: auto !important;
+    margin-right: auto !important;
+    display: block;
+  }
+
+  /* Container com margin correto */
+  .container-centered {
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+  }
+
+  /* Força centralização do container */
+  .force-center {
+    margin-left: auto !important;
+    margin-right: auto !important;
+    display: block !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Container principal da página Challenge */
+  .challenge-container {
+    margin-left: auto !important;
+    margin-right: auto !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  @media (min-width: 640px) {
+    .challenge-container {
+      padding-left: 24px !important;
+      padding-right: 24px !important;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .challenge-container {
+      padding-left: 32px !important;
+      padding-right: 32px !important;
+    }
   }
 
   .loading-spinner {

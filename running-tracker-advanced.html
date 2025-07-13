@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PlayFit Running Tracker - Advanced</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React and ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Leaflet for Maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Chart.js for Analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            DEFAULT: '#FBBF24',
+                            50: '#FEF7E3',
+                            100: '#FEF0C7',
+                            200: '#FDE68A',
+                            300: '#FCD34D',
+                            400: '#FBBF24',
+                            500: '#F59E0B',
+                            600: '#D97706',
+                            700: '#B45309',
+                            800: '#92400E',
+                            900: '#78350F'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        .map-container {
+            height: 300px;
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+        
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            padding: 12px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        .toast.success { background-color: #10B981; }
+        .toast.error { background-color: #EF4444; }
+        .toast.info { background-color: #3B82F6; }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .pulse-dot {
+            animation: pulse-dot 2s infinite;
+        }
+        
+        @keyframes pulse-dot {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.7; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%);
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // Enhanced Toast System
+        const useToast = () => {
+            const showToast = (message, type = 'info', duration = 3000) => {
+                const toast = document.createElement('div');
+                toast.className = `toast ${type}`;
+                toast.textContent = message;
+                document.body.appendChild(toast);
+                
+                setTimeout(() => {
+                    toast.remove();
+                }, duration);
+            };
+            
+            return {
+                success: (message, duration) => showToast(message, 'success', duration),
+                error: (message, duration) => showToast(message, 'error', duration),
+                info: (message, duration) => showToast(message, 'info', duration)
+            };
+        };
+
+        // Enhanced Map Component
+        const MapComponent = ({ route, isTracking, center }) => {
+            const mapRef = useRef(null);
+            const leafletMapRef = useRef(null);
+
+            useEffect(() => {
+                if (!leafletMapRef.current && mapRef.current) {
+                    leafletMapRef.current = L.map(mapRef.current).setView(center || [51.505, -0.09], 13);
+                    
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '© OpenStreetMap contributors'
+                    }).addTo(leafletMapRef.current);
+                }
+            }, []);
+
+            useEffect(() => {
+                if (leafletMapRef.current && route.length > 0) {
+                    // Clear existing layers
+                    leafletMapRef.current.eachLayer((layer) => {
+                        if (layer instanceof L.Polyline || layer instanceof L.Marker) {
+                            leafletMapRef.current.removeLayer(layer);
+                        }
+                    });
+
+                    // Add route polyline
+                    const routeCoords = route.map(point => [point.lat, point.lng]);
+                    const polyline = L.polyline(routeCoords, {
+                        color: '#FBBF24',
+                        weight: 4,
+                        opacity: 0.8
+                    }).addTo(leafletMapRef.current);
+
+                    // Add start marker
+                    if (route.length > 0) {
+                        L.marker([route[0].lat, route[0].lng])
+                            .addTo(leafletMapRef.current)
+                            .bindPopup('Início');
+                    }
+
+                    // Add current position marker (if tracking)
+                    if (isTracking && route.length > 0) {
+                        const lastPoint = route[route.length - 1];
+                        L.marker([lastPoint.lat, lastPoint.lng])
+                            .addTo(leafletMapRef.current)
+                            .bindPopup('Posição atual');
+                    }
+
+                    // Fit map to route
+                    if (routeCoords.length > 1) {
+                        leafletMapRef.current.fitBounds(polyline.getBounds());
+                    }
+                }
+            }, [route, isTracking]);
+
+            return <div ref={mapRef} className="map-container w-full" />;
+        };
+
+        // Enhanced Statistics Component
+        const StatisticsCard = ({ title, value, unit, icon, trend, color = "primary" }) => (
+            <div className="stat-card rounded-lg p-4 shadow-lg">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <p className="text-sm text-gray-600">{title}</p>
+                        <p className={`text-2xl font-bold text-${color}-500`}>
+                            {value} <span className="text-sm text-gray-500">{unit}</span>
+                        </p>
+                    </div>
+                    <div className="text-3xl opacity-70">{icon}</div>
+                </div>
+                {trend && (
+                    <div className="mt-2 flex items-center text-sm">
+                        <span className={`${trend.positive ? 'text-green-500' : 'text-red-500'}`}>
+                            {trend.positive ? '↑' : '↓'} {trend.value}
+                        </span>
+                        <span className="ml-1 text-gray-500">vs sessão anterior</span>
+                    </div>
+                )}
+            </div>
+        );
+
+        // Weather Component (simulated)
+        const WeatherWidget = () => {
+            const [weather, setWeather] = useState({
+                temperature: 22,
+                condition: 'Ensolarado',
+                humidity: 60,
+                windSpeed: 8
+            });
+
+            return (
+                <div className="stat-card rounded-lg p-4 shadow-lg">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm text-gray-600">Condições</p>
+                            <p className="text-lg font-semibold">{weather.condition}</p>
+                            <p className="text-sm text-gray-500">
+                                {weather.temperature}°C • {weather.humidity}% umidade
+                            </p>
+                        </div>
+                        <div className="text-3xl">☀️</div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Enhanced Progress Component
+        const EnhancedProgress = ({ value, max, label, color = "primary" }) => {
+            const percentage = (value / max) * 100;
+            
+            return (
+                <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                        <span>{label}</span>
+                        <span>{value.toFixed(1)} / {max}</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                            className={`bg-${color}-400 h-2 rounded-full transition-all duration-500`}
+                            style={{ width: `${Math.min(100, percentage)}%` }}
+                        />
+                    </div>
+                    <div className="text-xs text-gray-500 text-right">
+                        {percentage.toFixed(1)}%
+                    </div>
+                </div>
+            );
+        };
+
+        // Main Advanced Running Tracker Component
+        const AdvancedRunningTracker = () => {
+            const [activeTab, setActiveTab] = useState('track');
+            const [isTracking, setIsTracking] = useState(false);
+            const [isPaused, setIsPaused] = useState(false);
+            const [activityType, setActivityType] = useState('running');
+            const [currentSession, setCurrentSession] = useState({
+                duration: 0,
+                distance: 0,
+                averagePace: 0,
+                calories: 0,
+                route: [],
+                elevation: 0,
+                maxSpeed: 0
+            });
+            const [sessions, setSessions] = useState([]);
+            const [goals, setGoals] = useState([]);
+            const [achievements, setAchievements] = useState([]);
+            const [userStats, setUserStats] = useState({
+                totalDistance: 0,
+                totalTime: 0,
+                totalSessions: 0,
+                bestPace: 0,
+                thisWeekDistance: 0,
+                thisMonthDistance: 0
+            });
+            
+            const toast = useToast();
+            const intervalRef = useRef(null);
+            const watchIdRef = useRef(null);
+            const startTimeRef = useRef(null);
+            const pausedTimeRef = useRef(0);
+
+            // Initialize with sample data
+            useEffect(() => {
+                const sampleSessions = [
+                    {
+                        id: '1',
+                        type: 'running',
+                        date: new Date(Date.now() - 86400000).toISOString(),
+                        duration: 1800,
+                        distance: 5000,
+                        averagePace: 6.0,
+                        calories: 350,
+                        route: [
+                            { lat: 51.505, lng: -0.09, timestamp: Date.now() - 1800000 },
+                            { lat: 51.506, lng: -0.08, timestamp: Date.now() - 1700000 },
+                            { lat: 51.507, lng: -0.07, timestamp: Date.now() - 1600000 }
+                        ],
+                        completed: true
+                    },
+                    {
+                        id: '2',
+                        type: 'walking',
+                        date: new Date(Date.now() - 172800000).toISOString(),
+                        duration: 2400,
+                        distance: 3000,
+                        averagePace: 8.0,
+                        calories: 180,
+                        route: [],
+                        completed: true
+                    }
+                ];
+                
+                setSessions(sampleSessions);
+                
+                // Calculate user stats
+                const totalDistance = sampleSessions.reduce((sum, s) => sum + s.distance, 0);
+                const totalTime = sampleSessions.reduce((sum, s) => sum + s.duration, 0);
+                const bestPace = Math.min(...sampleSessions.map(s => s.averagePace));
+                
+                setUserStats({
+                    totalDistance,
+                    totalTime,
+                    totalSessions: sampleSessions.length,
+                    bestPace,
+                    thisWeekDistance: totalDistance * 0.6,
+                    thisMonthDistance: totalDistance
+                });
+
+                // Initialize goals
+                setGoals([
+                    {
+                        id: '1',
+                        type: 'distance',
+                        title: 'Correr 50 km este mês',
+                        target: 50000,
+                        current: totalDistance,
+                        unit: 'm',
+                        completed: false
+                    },
+                    {
+                        id: '2',
+                        type: 'frequency',
+                        title: 'Correr 4 vezes por semana',
+                        target: 4,
+                        current: 2,
+                        unit: 'vezes',
+                        completed: false
+                    }
+                ]);
+
+                // Initialize achievements
+                setAchievements([
+                    {
+                        id: '1',
+                        title: 'Primeiro Quilômetro',
+                        description: 'Complete 1 km de corrida',
+                        icon: '🏃‍♂️',
+                        progress: Math.min(totalDistance, 1000),
+                        target: 1000,
+                        unlocked: totalDistance >= 1000
+                    },
+                    {
+                        id: '2',
+                        title: 'Velocista',
+                        description: 'Mantenha ritmo abaixo de 5 min/km',
+                        icon: '⚡',
+                        progress: bestPace < 5 ? 1 : 0,
+                        target: 1,
+                        unlocked: bestPace < 5
+                    }
+                ]);
+            }, []);
+
+            // Enhanced tracking functions
+            const startTracking = () => {
+                if (!navigator.geolocation) {
+                    toast.error('Geolocalização não suportada');
+                    return;
+                }
+
+                setIsTracking(true);
+                setIsPaused(false);
+                startTimeRef.current = Date.now();
+                
+                setCurrentSession({
+                    duration: 0,
+                    distance: 0,
+                    averagePace: 0,
+                    calories: 0,
+                    route: [],
+                    elevation: 0,
+                    maxSpeed: 0
+                });
+
+                // Enhanced geolocation tracking
+                watchIdRef.current = navigator.geolocation.watchPosition(
+                    (position) => {
+                        const newPoint = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude,
+                            timestamp: Date.now(),
+                            speed: position.coords.speed || 0,
+                            altitude: position.coords.altitude || 0
+                        };
+                        
+                        setCurrentSession(prev => ({
+                            ...prev,
+                            route: [...prev.route, newPoint],
+                            maxSpeed: Math.max(prev.maxSpeed, newPoint.speed)
+                        }));
+                    },
+                    (error) => {
+                        toast.error('Erro ao acessar GPS');
+                    },
+                    { 
+                        enableHighAccuracy: true, 
+                        timeout: 10000, 
+                        maximumAge: 0 
+                    }
+                );
+
+                // Enhanced timer
+                intervalRef.current = setInterval(() => {
+                    if (!isPaused) {
+                        const now = Date.now();
+                        const elapsed = (now - startTimeRef.current - pausedTimeRef.current) / 1000;
+                        
+                        setCurrentSession(prev => {
+                            const distance = calculateDistance(prev.route);
+                            const pace = distance > 0 ? (elapsed / 60) / (distance / 1000) : 0;
+                            const calories = calculateCalories(distance, elapsed, activityType);
+                            
+                            return {
+                                ...prev,
+                                duration: elapsed,
+                                distance,
+                                averagePace: pace,
+                                calories
+                            };
+                        });
+                    }
+                }, 1000);
+
+                toast.success(`${activityType === 'running' ? 'Corrida' : 'Caminhada'} iniciada!`);
+            };
+
+            const calculateDistance = (route) => {
+                if (route.length < 2) return 0;
+                
+                let totalDistance = 0;
+                for (let i = 1; i < route.length; i++) {
+                    const prev = route[i - 1];
+                    const curr = route[i];
+                    
+                    const R = 6371000;
+                    const dLat = (curr.lat - prev.lat) * Math.PI / 180;
+                    const dLng = (curr.lng - prev.lng) * Math.PI / 180;
+                    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                              Math.cos(prev.lat * Math.PI / 180) * Math.cos(curr.lat * Math.PI / 180) *
+                              Math.sin(dLng/2) * Math.sin(dLng/2);
+                    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                    totalDistance += R * c;
+                }
+                
+                return totalDistance;
+            };
+
+            const calculateCalories = (distance, duration, type) => {
+                const distanceKm = distance / 1000;
+                const durationHours = duration / 3600;
+                const weight = 70;
+                const met = type === 'running' ? 8.0 : 3.8;
+                return Math.round(met * weight * durationHours);
+            };
+
+            const formatTime = (seconds) => {
+                const hours = Math.floor(seconds / 3600);
+                const mins = Math.floor((seconds % 3600) / 60);
+                const secs = Math.floor(seconds % 60);
+                
+                if (hours > 0) {
+                    return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                }
+                return `${mins}:${secs.toString().padStart(2, '0')}`;
+            };
+
+            const formatDistance = (meters) => {
+                if (meters >= 1000) {
+                    return `${(meters / 1000).toFixed(2)} km`;
+                }
+                return `${meters.toFixed(0)} m`;
+            };
+
+            const formatPace = (pace) => {
+                if (pace === 0 || !isFinite(pace)) return '0:00';
+                const mins = Math.floor(pace);
+                const secs = Math.floor((pace - mins) * 60);
+                return `${mins}:${secs.toString().padStart(2, '0')}`;
+            };
+
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-blue-50 to-yellow-50">
+                    {/* Header */}
+                    <div className="gradient-bg text-white p-6 rounded-b-3xl shadow-lg">
+                        <div className="flex items-center justify-between mb-4">
+                            <div>
+                                <h1 className="text-2xl font-bold">PlayFit Runner</h1>
+                                <p className="text-yellow-100">Versão Avançada</p>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-sm text-yellow-100">Total percorrido</p>
+                                <p className="text-xl font-bold">{formatDistance(userStats.totalDistance)}</p>
+                            </div>
+                        </div>
+                        
+                        {/* Quick Stats */}
+                        <div className="grid grid-cols-3 gap-4 text-center">
+                            <div>
+                                <p className="text-2xl font-bold">{userStats.totalSessions}</p>
+                                <p className="text-xs text-yellow-100">Sessões</p>
+                            </div>
+                            <div>
+                                <p className="text-2xl font-bold">{formatTime(userStats.totalTime)}</p>
+                                <p className="text-xs text-yellow-100">Tempo total</p>
+                            </div>
+                            <div>
+                                <p className="text-2xl font-bold">{formatPace(userStats.bestPace)}</p>
+                                <p className="text-xs text-yellow-100">Melhor ritmo</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="container mx-auto px-4 py-6 max-w-md">
+                        {/* Weather Widget */}
+                        <div className="mb-6">
+                            <WeatherWidget />
+                        </div>
+
+                        {/* Activity Selection */}
+                        {!isTracking && (
+                            <div className="mb-6 grid grid-cols-2 gap-4">
+                                <button
+                                    onClick={() => setActivityType('running')}
+                                    className={`p-4 rounded-xl transition-all ${
+                                        activityType === 'running' 
+                                            ? 'bg-primary-400 text-white shadow-lg' 
+                                            : 'bg-white text-gray-700 shadow-md'
+                                    }`}
+                                >
+                                    <div className="text-2xl mb-2">🏃‍♂️</div>
+                                    <div className="font-semibold">Corrida</div>
+                                </button>
+                                <button
+                                    onClick={() => setActivityType('walking')}
+                                    className={`p-4 rounded-xl transition-all ${
+                                        activityType === 'walking' 
+                                            ? 'bg-primary-400 text-white shadow-lg' 
+                                            : 'bg-white text-gray-700 shadow-md'
+                                    }`}
+                                >
+                                    <div className="text-2xl mb-2">🚶‍♂️</div>
+                                    <div className="font-semibold">Caminhada</div>
+                                </button>
+                            </div>
+                        )}
+
+                        {/* Live Tracking Stats */}
+                        <div className="grid grid-cols-2 gap-4 mb-6">
+                            <StatisticsCard
+                                title="Tempo"
+                                value={formatTime(currentSession.duration)}
+                                unit=""
+                                icon="⏱️"
+                            />
+                            <StatisticsCard
+                                title="Distância"
+                                value={formatDistance(currentSession.distance)}
+                                unit=""
+                                icon="📏"
+                            />
+                            <StatisticsCard
+                                title="Ritmo"
+                                value={formatPace(currentSession.averagePace)}
+                                unit="/km"
+                                icon="⚡"
+                            />
+                            <StatisticsCard
+                                title="Calorias"
+                                value={currentSession.calories}
+                                unit="kcal"
+                                icon="🔥"
+                            />
+                        </div>
+
+                        {/* Enhanced Map */}
+                        <div className="mb-6 bg-white rounded-xl shadow-lg overflow-hidden">
+                            <div className="p-4 bg-gray-50 border-b">
+                                <h3 className="font-semibold text-gray-800">Trajeto em Tempo Real</h3>
+                                <p className="text-sm text-gray-600">
+                                    {isTracking ? (
+                                        <span className="flex items-center">
+                                            <span className="pulse-dot bg-red-500 w-2 h-2 rounded-full mr-2"></span>
+                                            Rastreando GPS...
+                                        </span>
+                                    ) : (
+                                        'Inicie o rastreamento para ver o mapa'
+                                    )}
+                                </p>
+                            </div>
+                            <MapComponent 
+                                route={currentSession.route} 
+                                isTracking={isTracking}
+                                center={currentSession.route.length > 0 ? 
+                                    [currentSession.route[0].lat, currentSession.route[0].lng] : 
+                                    [51.505, -0.09]
+                                }
+                            />
+                        </div>
+
+                        {/* Control Buttons */}
+                        <div className="flex justify-center gap-4 mb-6">
+                            {!isTracking ? (
+                                <button
+                                    onClick={startTracking}
+                                    className="gradient-bg text-white px-8 py-4 rounded-xl font-semibold shadow-lg flex items-center"
+                                >
+                                    <span className="mr-2">▶️</span>
+                                    Iniciar {activityType === 'running' ? 'Corrida' : 'Caminhada'}
+                                </button>
+                            ) : (
+                                <>
+                                    <button
+                                        onClick={() => setIsPaused(!isPaused)}
+                                        className="bg-blue-500 text-white px-6 py-3 rounded-xl font-semibold shadow-lg"
+                                    >
+                                        {isPaused ? '▶️' : '⏸️'}
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setIsTracking(false);
+                                            setIsPaused(false);
+                                            if (watchIdRef.current) {
+                                                navigator.geolocation.clearWatch(watchIdRef.current);
+                                            }
+                                            if (intervalRef.current) {
+                                                clearInterval(intervalRef.current);
+                                            }
+                                            toast.success('Sessão finalizada!');
+                                        }}
+                                        className="bg-red-500 text-white px-6 py-3 rounded-xl font-semibold shadow-lg"
+                                    >
+                                        ⏹️
+                                    </button>
+                                </>
+                            )}
+                        </div>
+
+                        {/* Weekly Progress */}
+                        <div className="bg-white rounded-xl p-6 shadow-lg mb-6">
+                            <h3 className="font-semibold text-gray-800 mb-4">Progresso Semanal</h3>
+                            <EnhancedProgress
+                                value={userStats.thisWeekDistance / 1000}
+                                max={25}
+                                label="Meta: 25 km esta semana"
+                                color="primary"
+                            />
+                        </div>
+
+                        {/* Monthly Goals */}
+                        <div className="bg-white rounded-xl p-6 shadow-lg">
+                            <h3 className="font-semibold text-gray-800 mb-4">Metas do Mês</h3>
+                            <div className="space-y-4">
+                                {goals.map((goal) => (
+                                    <div key={goal.id}>
+                                        <EnhancedProgress
+                                            value={goal.current / (goal.type === 'distance' ? 1000 : 1)}
+                                            max={goal.target / (goal.type === 'distance' ? 1000 : 1)}
+                                            label={goal.title}
+                                            color={goal.completed ? 'green' : 'primary'}
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Render the app
+        ReactDOM.render(<AdvancedRunningTracker />, document.getElementById('root'));
+    </script>
+</body>
+</html> 

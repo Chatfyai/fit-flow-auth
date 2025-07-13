@@ -19,6 +19,9 @@ import Chat from './pages/Chat';
 import Goals from './pages/Goals';
 import Nutrition from './pages/Nutrition';
 import Badges from './pages/Badges';
+import Share from './pages/Share';
+import Challenge from './pages/Challenge';
+import JoinChallenge from './pages/JoinChallenge';
 
 const queryClient = new QueryClient();
 
@@ -81,6 +84,9 @@ const AppContent = () => {
         <Route path="/chat" element={<Chat />} />
         <Route path="/goals" element={<Goals />} />
         <Route path="/nutrition" element={<Nutrition />} />
+        <Route path="/share" element={<Share />} />
+        <Route path="/challenge/:id" element={<Challenge />} />
+        <Route path="/join-challenge/:id" element={<JoinChallenge />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
