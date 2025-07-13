@@ -207,6 +207,7 @@ export type Database = {
       }
       workout_sessions: {
         Row: {
+          completion_percentage: number
           created_at: string | null
           date: string
           duration: number | null
@@ -216,6 +217,7 @@ export type Database = {
           workout_id: string | null
         }
         Insert: {
+          completion_percentage?: number
           created_at?: string | null
           date?: string
           duration?: number | null
@@ -225,6 +227,7 @@ export type Database = {
           workout_id?: string | null
         }
         Update: {
+          completion_percentage?: number
           created_at?: string | null
           date?: string
           duration?: number | null

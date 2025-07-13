@@ -610,71 +610,7 @@ const TodaysWorkout = () => {
     }
   };
 
-  // Função para salvar progresso incremental no banco de dados
-  const saveProgressToDatabase = async (currentExerciseSets: Record<string, {completed: boolean[], started: boolean[]}>) => {
-    if (!user) return;
-    
-    try {
-      const today = getCurrentLocalDate();
-      const currentCompletedSets = Object.values(currentExerciseSets).reduce((total, exercise) => {
-        return total + exercise.completed.filter(Boolean).length;
-      }, 0);
-      
-      // Verificar se já existe sessão para hoje
-      const { data: existingSessions, error: selectError } = await supabase
-        .from('workout_sessions')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('date', today)
-        .order('created_at', { ascending: false })
-        .limit(1);
-
-      if (selectError) {
-        console.error('❌ Erro ao verificar sessão existente:', selectError);
-        return;
-      }
-
-      const isComplete = currentCompletedSets === totalSets;
-      const status = isComplete ? 'concluído' : 'em andamento';
-      
-      if (existingSessions && existingSessions.length > 0) {
-        // Atualizar sessão existente
-        const { error: updateError } = await supabase
-          .from('workout_sessions')
-          .update({
-            workout_id: workoutId || null,
-            notes: `Treino ${status} - ${currentCompletedSets}/${totalSets} séries`,
-            duration: Math.floor((Date.now() - new Date().setHours(0,0,0,0)) / 60000)
-          })
-          .eq('id', existingSessions[0].id);
-
-        if (updateError) {
-          console.error('❌ Erro ao atualizar progresso:', updateError);
-        } else {
-          console.log('✅ Progresso atualizado no banco:', { completedSets: currentCompletedSets, totalSets });
-        }
-      } else {
-        // Criar nova sessão
-        const { error: insertError } = await supabase
-          .from('workout_sessions')
-          .insert({
-            user_id: user.id,
-            workout_id: workoutId || null,
-            date: today,
-            duration: Math.floor((Date.now() - new Date().setHours(0,0,0,0)) / 60000),
-            notes: `Treino ${status} - ${currentCompletedSets}/${totalSets} séries`
-          });
-
-        if (insertError) {
-          console.error('❌ Erro ao criar nova sessão:', insertError);
-        } else {
-          console.log('✅ Nova sessão criada no banco:', { completedSets: currentCompletedSets, totalSets });
-        }
-      }
-    } catch (error) {
-      console.error('❌ Erro inesperado ao salvar progresso:', error);
-    }
-  };
+  // Função removida - agora salva apenas quando clicar em "Treino Concluído"
 
   const handleSetComplete = (exerciseId: string, setIndex: number) => {
     if (!exerciseSets[exerciseId]) {
@@ -693,11 +629,9 @@ const TodaysWorkout = () => {
         }
       };
       
-      // Salvar progresso no localStorage
+      // Salvar progresso apenas no localStorage - não mais no banco
       if (user) {
         saveProgressToStorage(newExerciseSets);
-        // Salvar progresso no banco de dados também
-        saveProgressToDatabase(newExerciseSets);
       }
       
       return newExerciseSets;
@@ -842,7 +776,8 @@ const TodaysWorkout = () => {
           .update({
             workout_id: workoutId || null,
             notes: `Treino ${status} com ${completedSets}/${totalSets} séries`,
-            duration: Math.floor((Date.now() - new Date().setHours(0,0,0,0)) / 60000) // Duração aproximada em minutos
+            duration: Math.floor((Date.now() - new Date().setHours(0,0,0,0)) / 60000), // Duração aproximada em minutos
+            completion_percentage: progressPercentage
           })
           .eq('id', existingSession.id)
           .select();
@@ -882,7 +817,8 @@ const TodaysWorkout = () => {
         workout_id: workoutId || null,
         date: today, // Formato YYYY-MM-DD
         duration: Math.floor((Date.now() - new Date().setHours(0,0,0,0)) / 60000), // Duração aproximada em minutos
-        notes: `Treino ${status} com ${completedSets}/${totalSets} séries`
+        notes: `Treino ${status} com ${completedSets}/${totalSets} séries`,
+        completion_percentage: progressPercentage
       }).select();
 
       if (error) {
