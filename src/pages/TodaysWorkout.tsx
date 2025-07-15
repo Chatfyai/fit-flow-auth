@@ -724,7 +724,26 @@ const TodaysWorkout = () => {
 
   // Função para salvar a sessão de treino no banco de dados
   const saveWorkoutSession = async () => {
+    console.log('🏋️ Iniciando salvamento da sessão de treino...');
+    console.log('📊 Dados do usuário:', { 
+      userId: user?.id, 
+      userEmail: user?.email,
+      isLoggedIn: !!user 
+    });
+    console.log('📊 Dados do treino:', { 
+      workoutId, 
+      completedSets, 
+      totalSets, 
+      progressPercentage 
+    });
+
     if (!user) {
+      console.log('❌ Usuário não logado, redirecionando...');
+      toast({
+        title: 'Não logado',
+        description: 'Você precisa estar logado para salvar o treino.',
+        variant: 'destructive'
+      });
       navigate('/login');
       return false;
     }
@@ -733,28 +752,34 @@ const TodaysWorkout = () => {
     
     try {
       const today = getCurrentLocalDate();
+      console.log('📅 Data atual:', today);
       
-      // Verificar se já existem sessões para hoje (pode ter múltiplas)
+      // Verificar se já existem sessões para hoje
+      console.log('🔍 Verificando sessões existentes...');
       const { data: existingSessions, error: selectError } = await supabase
         .from('workout_sessions')
-        .select('id, notes')
+        .select('id, notes, completion_percentage')
         .eq('user_id', user.id)
         .eq('date', today)
         .order('created_at', { ascending: false });
 
       if (selectError) {
         console.error('❌ Erro ao verificar sessões existentes:', selectError);
+        throw selectError;
       }
 
+      console.log('📋 Sessões encontradas:', existingSessions);
+
       if (existingSessions && existingSessions.length > 0) {
-        console.log('⚠️ Sessões já existem para hoje, atualizando a mais recente...', existingSessions);
+        console.log('⚠️ Sessões já existem para hoje, atualizando a mais recente...');
         
-        // Usar apenas a primeira sessão (mais recente)
         const existingSession = existingSessions[0];
         
         // Remover sessões duplicadas se existirem
         if (existingSessions.length > 1) {
           const duplicateIds = existingSessions.slice(1).map(s => s.id);
+          console.log('🗑️ Removendo sessões duplicadas:', duplicateIds);
+          
           const { error: deleteError } = await supabase
             .from('workout_sessions')
             .delete()
@@ -763,7 +788,7 @@ const TodaysWorkout = () => {
           if (deleteError) {
             console.error('❌ Erro ao remover sessões duplicadas:', deleteError);
           } else {
-            console.log('🗑️ Sessões duplicadas removidas:', duplicateIds);
+            console.log('✅ Sessões duplicadas removidas com sucesso');
           }
         }
         
@@ -771,12 +796,21 @@ const TodaysWorkout = () => {
         const isComplete = completedSets === totalSets;
         const status = isComplete ? 'concluído' : 'finalizado';
         
+        console.log('🔄 Atualizando sessão existente...', {
+          sessionId: existingSession.id,
+          isComplete,
+          status,
+          completedSets,
+          totalSets,
+          progressPercentage
+        });
+        
         const { data, error } = await supabase
           .from('workout_sessions')
           .update({
             workout_id: workoutId || null,
             notes: `Treino ${status} com ${completedSets}/${totalSets} séries`,
-            duration: Math.floor((Date.now() - new Date().setHours(0,0,0,0)) / 60000), // Duração aproximada em minutos
+            duration: Math.floor((Date.now() - new Date().setHours(0,0,0,0)) / 60000),
             completion_percentage: progressPercentage
           })
           .eq('id', existingSession.id)
@@ -784,12 +818,7 @@ const TodaysWorkout = () => {
 
         if (error) {
           console.error('❌ Erro ao atualizar sessão:', error);
-          toast({
-            title: 'Erro ao salvar',
-            description: `Não foi possível atualizar: ${error.message}`,
-            variant: 'destructive'
-          });
-          return false;
+          throw error;
         }
 
         console.log('✅ Sessão atualizada com sucesso:', data);
@@ -801,37 +830,40 @@ const TodaysWorkout = () => {
         return true;
       }
 
-      console.log('🏋️ Salvando nova sessão de treino...', {
-        user_id: user.id,
-        workout_id: workoutId,
-        date: today,
-        completedSets,
-        totalSets
-      });
+      // Criar nova sessão
+      console.log('🆕 Criando nova sessão de treino...');
 
       const isComplete = completedSets === totalSets;
       const status = isComplete ? 'concluído' : 'finalizado';
       
-      const { data, error } = await supabase.from('workout_sessions').insert({
+      const sessionData = {
         user_id: user.id,
         workout_id: workoutId || null,
-        date: today, // Formato YYYY-MM-DD
-        duration: Math.floor((Date.now() - new Date().setHours(0,0,0,0)) / 60000), // Duração aproximada em minutos
+        date: today,
+        duration: Math.floor((Date.now() - new Date().setHours(0,0,0,0)) / 60000),
         notes: `Treino ${status} com ${completedSets}/${totalSets} séries`,
         completion_percentage: progressPercentage
-      }).select();
+      };
+      
+      console.log('📝 Dados da nova sessão:', sessionData);
+      
+      const { data, error } = await supabase
+        .from('workout_sessions')
+        .insert(sessionData)
+        .select();
 
       if (error) {
-        console.error('❌ Erro ao salvar sessão:', error);
-        toast({
-          title: 'Erro ao salvar',
-          description: `Não foi possível salvar: ${error.message}`,
-          variant: 'destructive'
+        console.error('❌ Erro ao salvar nova sessão:', error);
+        console.error('❌ Detalhes do erro:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
         });
-        return false;
+        throw error;
       }
 
-      console.log('✅ Sessão salva com sucesso:', data);
+      console.log('✅ Nova sessão salva com sucesso:', data);
       
       // Limpar o progresso salvo localmente após salvar com sucesso
       localStorage.removeItem(getStorageKey());
@@ -840,9 +872,18 @@ const TodaysWorkout = () => {
       return true;
     } catch (error) {
       console.error('❌ Erro inesperado ao salvar sessão:', error);
+      
+      // Mostrar erro mais detalhado
+      let errorMessage = 'Erro inesperado ao salvar a sessão.';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'object' && error !== null) {
+        errorMessage = JSON.stringify(error);
+      }
+      
       toast({
-        title: 'Erro',
-        description: 'Erro inesperado ao salvar a sessão.',
+        title: 'Erro ao salvar',
+        description: errorMessage,
         variant: 'destructive'
       });
       return false;
@@ -889,27 +930,37 @@ const TodaysWorkout = () => {
   }
 
   const handleWorkoutComplete = async () => {
+    console.log('🎯 Botão "Treino Concluído" clicado');
+    console.log('👤 Usuário logado:', !!user, user?.email);
+    console.log('📊 Progresso atual:', { completedSets, totalSets, progressPercentage });
+    
     if (!user) {
+      console.log('❌ Usuário não logado, redirecionando para login');
       navigate('/login');
       return;
     }
 
     // Se o treino está completo, salvar diretamente
     if (completedSets === totalSets && totalSets > 0) {
+      console.log('✅ Treino completo, salvando diretamente...');
       await finishWorkout(true);
     } else {
+      console.log('⚠️ Treino incompleto, mostrando modal de confirmação...');
       // Se há séries faltando, mostrar modal de confirmação
       setShowConfirmDialog(true);
     }
   };
 
   const finishWorkout = async (isComplete: boolean) => {
+    console.log('🏁 Finalizando treino...', { isComplete, completedSets, totalSets });
+    
     if (isComplete) {
       // Dispara a animação de confetes para treino completo
       createConfetti();
     }
     
     // Salva a sessão no banco de dados
+    console.log('💾 Iniciando salvamento da sessão...');
     const sessionSaved = await saveWorkoutSession();
     
     if (sessionSaved) {
@@ -917,6 +968,8 @@ const TodaysWorkout = () => {
       const description = isComplete 
         ? 'Parabéns! Seu treino foi salvo com sucesso.'
         : `Treino salvo com ${completedSets}/${totalSets} séries concluídas.`;
+      
+      console.log('✅ Sessão salva com sucesso, mostrando toast de sucesso');
       
       toast({
         title,
@@ -938,6 +991,8 @@ const TodaysWorkout = () => {
         navigate('/dashboard');
       }, 2000);
     } else {
+      console.log('❌ Erro ao salvar sessão, mas mostrando toast de conclusão mesmo assim');
+      
       const title = isComplete ? 'Treino Concluído!' : 'Treino Finalizado!';
       const description = isComplete 
         ? 'Parabéns! Houve um problema ao salvar, mas seu treino foi concluído.'
@@ -1135,7 +1190,10 @@ const TodaysWorkout = () => {
             {totalSets > 0 && (
               <div className="text-center pt-8">
                 <Button
-                  onClick={handleWorkoutComplete}
+                  onClick={() => {
+                    console.log('🖱️ Clique no botão detectado');
+                    handleWorkoutComplete();
+                  }}
                   size="lg"
                   className={`px-12 py-4 text-lg font-semibold shadow-lg hover:shadow-xl ${
                     completedSets === totalSets 
@@ -1178,6 +1236,7 @@ const TodaysWorkout = () => {
             <AlertDialogCancel>Continuar Treinando</AlertDialogCancel>
             <AlertDialogAction 
               onClick={async () => {
+                console.log('✅ Usuário confirmou finalização do treino incompleto');
                 setShowConfirmDialog(false);
                 await finishWorkout(false);
               }}
