@@ -28,6 +28,7 @@ const Dashboard = () => {
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [todaysWorkout, setTodaysWorkout] = useState<WorkoutDay[]>([]);
   const [loading, setLoading] = useState(true);
+  const [recentlyCompletedDate, setRecentlyCompletedDate] = useState<string | null>(null);
 
 
 
@@ -128,6 +129,16 @@ const Dashboard = () => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'workout_completed' && user) {
         console.log('🏆 Treino completado detectado, atualizando dados...');
+        
+        // Marcar a data de hoje como recém-completada
+        const todayString = getCurrentLocalDate();
+        setRecentlyCompletedDate(todayString);
+        
+        // Remover o destaque após 5 segundos
+        setTimeout(() => {
+          setRecentlyCompletedDate(null);
+        }, 5000);
+        
         setTimeout(() => {
           fetchData();
           localStorage.removeItem('workout_completed');
@@ -600,16 +611,21 @@ const Dashboard = () => {
                         const todayTimestamp = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
                         const isFutureDay = dayTimestamp > todayTimestamp;
                         
+                        // Verificar se esta data é a recém-completada
+                        const isRecentlyCompleted = recentlyCompletedDate === dateString;
+                        
                         return (
                           <div
                             key={day}
-                            className={`w-7 h-7 rounded-sm transition-colors duration-150 flex items-center justify-center text-xs font-semibold ${
+                            className={`w-7 h-7 rounded-sm flex items-center justify-center text-xs font-semibold ${
                               isFutureDay 
                                 ? 'bg-gray-100 border border-gray-200 text-gray-400' // Dias futuros
                                 : hasTrained 
-                                  ? 'bg-yellow-500 text-white' // Treinou - amarelo
+                                  ? isRecentlyCompleted 
+                                    ? 'bg-yellow-400 text-white shadow-lg animate-pulse border-2 border-yellow-300' // Recém-completado - amarelo brilhante pulsante
+                                    : 'bg-yellow-500 text-white' // Treinou - amarelo normal
                                   : 'bg-gray-300 text-gray-600'   // Não treinou - cinza
-                            } ${isToday ? 'border-2 border-yellow-600' : ''}`}
+                            } ${isToday ? 'border-2 border-yellow-600' : ''} transition-all duration-300`}
                             onMouseEnter={(e) => showTooltip(e, day)}
                             onMouseLeave={hideTooltip}
                           >
