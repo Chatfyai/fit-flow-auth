@@ -12,6 +12,7 @@ import { Typewriter } from '@/components/ui/typewriter';
 import { PlayFitLogo } from '@/components/ui/playfit-logo';
 import { ProfileDropdown } from '@/components/ui/profile-dropdown';
 import { getCurrentLocalDate, dateToLocalDateString } from '@/lib/utils';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 interface WorkoutSession {
   id: string;
@@ -29,7 +30,7 @@ const Dashboard = () => {
   const [todaysWorkout, setTodaysWorkout] = useState<WorkoutDay[]>([]);
   const [loading, setLoading] = useState(true);
   const [recentlyCompletedDate, setRecentlyCompletedDate] = useState<string | null>(null);
-
+  const [selectedBadge, setSelectedBadge] = useState<any | null>(null);
 
 
   // Usar dados reais apenas se logado, caso contrário usar arrays vazios
@@ -445,9 +446,55 @@ const Dashboard = () => {
             )}
           </div>
           
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">Painel</h2>
-          <p className="text-gray-600">Acompanhe seu progresso fitness</p>
+          {/* Removido título Painel e subtítulo de progresso */}
+
         </div>
+
+        {/* Botão Play no treino - agora acima do progresso */}
+        <div className="flex justify-center my-8">
+          <div className="relative w-full max-w-xl flex items-center justify-center">
+            {/* Linha animada ao redor do botão */}
+            <span className="pointer-events-none absolute inset-0 z-10 rounded-2xl" aria-hidden="true">
+              <span className="block w-full h-full rounded-2xl border-2 border-yellow-400 animate-border-move" style={{ borderColor: '#FFD65A', borderStyle: 'solid', borderWidth: '2px' }}></span>
+            </span>
+            <button
+              className="w-full text-black font-bold px-8 py-4 rounded-2xl shadow-lg text-lg uppercase focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 transition-all duration-300 relative z-20"
+              style={{ backgroundColor: '#FFD65A', fontWeight: 700 }}
+              onClick={() => {
+                if (!user) {
+                  navigate('/login');
+                  return;
+                }
+                const currentWorkout = workouts.find(workout => {
+                  if (!workout.expiration_date) return true;
+                  return new Date(workout.expiration_date) >= new Date();
+                });
+                navigate('/treino-do-dia', {
+                  state: {
+                    workoutDays: finalTodaysWorkout,
+                    date: new Date().toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+                    workoutId: currentWorkout?.id
+                  }
+                });
+              }}
+            >
+              <span className="flex items-center justify-center gap-3">
+                PLAY NO TREINO
+              </span>
+            </button>
+          </div>
+        </div>
+
+        {/* Tailwind custom animation (adicione no tailwind.config.js):
+        'border-move': {
+          '0%': { borderImageSource: 'linear-gradient(90deg, #FFD65A 0%, transparent 100%)', borderImageSlice: 1 },
+          '25%': { borderImageSource: 'linear-gradient(180deg, #FFD65A 0%, transparent 100%)', borderImageSlice: 1 },
+          '50%': { borderImageSource: 'linear-gradient(270deg, #FFD65A 0%, transparent 100%)', borderImageSlice: 1 },
+          '75%': { borderImageSource: 'linear-gradient(360deg, #FFD65A 0%, transparent 100%)', borderImageSlice: 1 },
+          '100%': { borderImageSource: 'linear-gradient(90deg, #FFD65A 0%, transparent 100%)', borderImageSlice: 1 },
+        }
+        Duração sugerida: 4s linear infinite
+        */}
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -512,25 +559,57 @@ const Dashboard = () => {
                   });
                 }
                 
+                // Descrições dos emblemas
+                const badgeDescriptions: Record<string, string> = {
+                  'primeiro-passo': 'Conquiste ao completar seu primeiro treino!',
+                  'inicio-forte': 'Conquiste ao completar 3 treinos.',
+                  'semana-perfeita': 'Conquiste ao atingir sua meta semanal de treinos.',
+                  'compromisso-dourado': 'Conquiste ao completar 10 treinos.',
+                  'habito-criado': 'Conquiste ao completar 21 treinos e criar o hábito!',
+                };
+
                 return (
-                  <div className="flex items-center justify-between gap-4">
-                    {badgeSlots.map((badge, index) => (
-                      <div key={badge.id} className="flex flex-col items-center text-center flex-1">
-                        <div 
-                          className="w-12 h-12 rounded-full flex items-center justify-center mb-2" 
-                          style={{ backgroundColor: badge.achieved ? '#FFD65A' : '#D1D5DB' }}
-                        >
-                          {React.cloneElement(badge.icon as React.ReactElement, { 
-                            className: "w-6 h-6",
-                            style: { color: badge.achieved ? '#8B4513' : '#9CA3AF' }
-                          })}
+                  <>
+                    <div className="flex items-center justify-between gap-4">
+                      {badgeSlots.map((badge, index) => (
+                        <div key={badge.id} className="flex flex-col items-center text-center flex-1">
+                          <button
+                            type="button"
+                            disabled={!badge.achieved}
+                            onClick={() => badge.achieved && setSelectedBadge(badge)}
+                            className="focus:outline-none"
+                            style={{ background: 'none', border: 'none', padding: 0, margin: 0 }}
+                          >
+                            <div 
+                              className="w-12 h-12 rounded-full flex items-center justify-center mb-2" 
+                              style={{ backgroundColor: badge.achieved ? '#FFD65A' : '#D1D5DB' }}
+                            >
+                              {React.cloneElement(badge.icon as React.ReactElement, { 
+                                className: "w-6 h-6",
+                                style: { color: badge.achieved ? '#8B4513' : '#9CA3AF' }
+                              })}
+                            </div>
+                          </button>
+                          <div className={`text-xs font-medium ${badge.achieved ? 'text-gray-900' : 'text-gray-500'}`}>
+                            {badge.title}
+                          </div>
                         </div>
-                        <div className={`text-xs font-medium ${badge.achieved ? 'text-gray-900' : 'text-gray-500'}`}>
-                          {badge.title}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                    <Dialog open={!!selectedBadge} onOpenChange={() => setSelectedBadge(null)}>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>{selectedBadge?.title}</DialogTitle>
+                          <DialogDescription>
+                            {selectedBadge?.achieved && selectedBadge?.date && (
+                              <div className="mb-2">Conquistado em: {selectedBadge.date}</div>
+                            )}
+                            {badgeDescriptions[selectedBadge?.id as string] || 'Continue treinando para desbloquear este emblema!'}
+                          </DialogDescription>
+                        </DialogHeader>
+                      </DialogContent>
+                    </Dialog>
+                  </>
                 );
               })()}
             </CardContent>
@@ -664,108 +743,6 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         </div>
-
-        {/* Today's Workout */}
-        <Card className="mb-8 cursor-pointer hover:shadow-xl transition-all duration-300 ease-out hover:-translate-y-1" 
-              onClick={() => {
-                if (!user) {
-                  navigate('/login');
-                  return;
-                }
-                const currentWorkout = workouts.find(workout => {
-                  if (!workout.expiration_date) return true;
-                  return new Date(workout.expiration_date) >= new Date();
-                });
-                navigate('/treino-do-dia', { 
-                  state: { 
-                    workoutDays: finalTodaysWorkout, 
-                    date: new Date().toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
-                    workoutId: currentWorkout?.id
-                  } 
-                });
-              }}>
-          <CardHeader>
-            <CardTitle className="flex items-center text-xl">
-              <Calendar className="h-6 w-6 mr-3 text-primary" />
-              Treino de Hoje
-            </CardTitle>
-            <CardDescription className="text-base">
-              {new Date().toLocaleDateString('pt-BR', { 
-                weekday: 'long', 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-              })}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="text-center py-8">
-                <LoadingSpinner size="lg" variant="primary" className="mx-auto mb-4" />
-                <p className="text-gray-500">Carregando treino de hoje...</p>
-              </div>
-            ) : !user ? (
-              <div className="space-y-4">
-                <div className="p-6 bg-gradient-to-r from-primary/5 to-accent/5 rounded-2xl border border-primary/20 hover:shadow-md transition-all duration-300 ease-out">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <div className="w-12 h-12 gradient-bg rounded-xl flex items-center justify-center mr-4 shadow-md">
-                        <span className="text-lg font-bold text-primary-foreground">A</span>
-                      </div>
-                      <div>
-                        <h3 className="text-xl font-bold text-gray-900">Treino A - Exemplo</h3>
-                        <p className="text-sm text-gray-600">5 exercícios programados</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-sm text-primary font-medium bg-primary/10 px-3 py-1 rounded-lg">
-                        Faça login para ver seus treinos
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <p className="text-sm text-blue-700 font-medium">
-                    💡 Esta é uma demonstração. Faça login para criar e acompanhar seus treinos personalizados!
-                  </p>
-                </div>
-              </div>
-            ) : finalTodaysWorkout.length > 0 ? (
-              <div className="space-y-4">
-                {finalTodaysWorkout.map((workoutDay) => (
-                  <div key={workoutDay.letter} className="p-6 bg-gradient-to-r from-primary/5 to-accent/5 rounded-2xl border border-primary/20 hover:shadow-md transition-all duration-300 ease-out">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <div className="w-12 h-12 gradient-bg rounded-xl flex items-center justify-center mr-4 shadow-md">
-                          <span className="text-lg font-bold text-primary-foreground">{workoutDay.letter}</span>
-                        </div>
-                        <div>
-                          <h3 className="text-xl font-bold text-gray-900">Treino {workoutDay.letter}</h3>
-                          <p className="text-sm text-gray-600">{workoutDay.exercises.length} exercícios programados</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-sm text-primary font-medium bg-primary/10 px-3 py-1 rounded-lg">
-                          Toque para ver detalhes
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <Activity className="h-8 w-8 text-gray-400" />
-                </div>
-                <p className="text-gray-500 text-lg font-medium">Nenhum treino programado para hoje</p>
-                <p className="text-sm text-gray-400 mt-2">
-                  Aproveite para descansar ou criar um novo plano!
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
 
         {/* My Workouts - agora ocupando largura total */}
         <Card className="mb-8 hover:shadow-xl transition-all duration-300 ease-out">

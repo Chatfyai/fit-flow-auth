@@ -17,7 +17,8 @@ import {
   LogOut, 
   UserCircle,
   TrendingUp,
-  Share2
+  Share2,
+  Home
 } from "lucide-react"
 
 interface ProfileDropdownProps {
@@ -62,6 +63,10 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ className }) =
           {user ? (user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuário') : 'Visitante'}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => handleNavigation('/')} className="cursor-pointer">
+          <Home className="mr-2 h-4 w-4" />
+          <span>Início</span>
+        </DropdownMenuItem>
         <DropdownMenuItem onClick={() => handleNavigation('/profile')} className="cursor-pointer">
           <UserCircle className="mr-2 h-4 w-4" />
           <span>Perfil</span>
@@ -77,10 +82,6 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ className }) =
         <DropdownMenuItem onClick={() => handleNavigation('/share')} className="cursor-pointer">
           <Share2 className="mr-2 h-4 w-4" />
           <span>Compartilhar</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleNavigation('/profile')} className="cursor-pointer">
-          <Settings className="mr-2 h-4 w-4" />
-          <span>Configurações</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         {user ? (
