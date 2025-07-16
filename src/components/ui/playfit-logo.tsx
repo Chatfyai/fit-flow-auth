@@ -1,39 +1,44 @@
-import React from 'react';
+import * as React from "react";
 
 interface PlayFitLogoProps {
+  size?: "sm" | "md" | "lg";
   className?: string;
-  size?: 'sm' | 'md' | 'lg';
 }
 
-export const PlayFitLogo: React.FC<PlayFitLogoProps> = ({ 
-  className = "", 
-  size = 'md' 
-}) => {
-  const sizeClasses = {
-    sm: 'w-6 h-6',
-    md: 'w-8 h-8',
-    lg: 'w-12 h-12'
+export const PlayFitLogo: React.FC<PlayFitLogoProps> = ({ size = "md", className = "" }) => {
+  // Define tamanhos em pixels para cada opção
+  const sizes = {
+    sm: 24,
+    md: 36,
+    lg: 48,
   };
+  const pixelSize = sizes[size] || sizes.md;
 
   return (
     <svg
-      viewBox="0 0 100 100"
+      width={pixelSize}
+      height={pixelSize}
+      viewBox="0 0 48 48"
+      fill="none"
+      className={className}
       xmlns="http://www.w3.org/2000/svg"
-      className={`${sizeClasses[size]} ${className}`}
     >
-      {/* 
-        Triângulo Play Suave - baseado no design fornecido
-        Os pontos foram ajustados para acomodar o efeito de bordas arredondadas
-        stroke-linejoin="round" arredonda os cantos onde as linhas se encontram
-        A espessura do stroke controla o raio do arredondamento
-      */}
-      <polygon 
-        points="20,15 85,50 20,85"
-        fill="#facc15"
-        stroke="#facc15"
-        strokeWidth="15"
-        strokeLinejoin="round" 
+      {/* Triângulo estilo "play" */}
+      <polygon
+        points="16,12 36,24 16,36"
+        fill="currentColor"
+      />
+      {/* Círculo de fundo */}
+      <circle
+        cx="24"
+        cy="24"
+        r="22"
+        stroke="currentColor"
+        strokeWidth="4"
+        fill="none"
       />
     </svg>
   );
-}; 
+};
+
+export default PlayFitLogo; 
