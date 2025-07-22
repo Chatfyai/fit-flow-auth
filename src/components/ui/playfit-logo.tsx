@@ -8,9 +8,9 @@ interface PlayFitLogoProps {
 export const PlayFitLogo: React.FC<PlayFitLogoProps> = ({ size = "md", className = "" }) => {
   // Define tamanhos em pixels para cada opção
   const sizes = {
-    sm: 24,
-    md: 36,
-    lg: 48,
+    sm: 56,
+    md: 96,
+    lg: 128,
   };
   const pixelSize = sizes[size] || sizes.md;
 
@@ -23,19 +23,13 @@ export const PlayFitLogo: React.FC<PlayFitLogoProps> = ({ size = "md", className
       className={className}
       xmlns="http://www.w3.org/2000/svg"
     >
-      {/* Triângulo estilo "play" */}
+      {/* Triângulo estilo "play" com cantos arredondados */}
       <polygon
-        points="16,12 36,24 16,36"
+        points="16,13 35,24 16,35"
         fill="currentColor"
-      />
-      {/* Círculo de fundo */}
-      <circle
-        cx="24"
-        cy="24"
-        r="22"
         stroke="currentColor"
-        strokeWidth="4"
-        fill="none"
+        strokeWidth="3"
+        strokeLinejoin="round"
       />
     </svg>
   );

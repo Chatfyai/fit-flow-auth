@@ -178,10 +178,10 @@ const FriendGroupPage = () => {
                 <ArrowLeft className="h-4 w-4 mr-1" />
                 Voltar
               </Button>
-              <div className="w-10 h-10 rounded-2xl flex items-center justify-center mr-3">
-                <PlayFitLogo size="md" className="text-yellow-500" />
+              <div className="w-14 h-14 rounded-2xl flex items-center justify-center mr-1">
+                <PlayFitLogo size="sm" className="text-yellow-500" />
               </div>
-              <h1 className="text-xl font-bold text-gray-900">PlayFit</h1>
+              <h1 className="text-2xl font-bold text-gray-900">PlayFit</h1>
             </div>
             <ProfileDropdown />
           </div>

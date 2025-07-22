@@ -930,7 +930,7 @@ const TodaysWorkout = () => {
   }
 
   const handleWorkoutComplete = async () => {
-    console.log('🎯 Botão "Treino Concluído" clicado');
+    console.log('🖱️ Clique no botão detectado');
     console.log('👤 Usuário logado:', !!user, user?.email);
     console.log('📊 Progresso atual:', { completedSets, totalSets, progressPercentage });
     
@@ -1059,10 +1059,10 @@ const TodaysWorkout = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <div className="w-10 h-10 rounded-2xl flex items-center justify-center mr-3">
-                <PlayFitLogo size="md" className="text-yellow-500" />
+              <div className="w-14 h-14 rounded-2xl flex items-center justify-center mr-1">
+                <PlayFitLogo size="sm" className="text-yellow-500" />
               </div>
-              <h1 className="text-xl font-bold text-gray-900">PlayFit</h1>
+              <h1 className="text-2xl font-bold text-gray-900">PlayFit</h1>
             </div>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-600 hidden md:block">
@@ -1225,11 +1225,10 @@ const TodaysWorkout = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Finalizar treino incompleto?</AlertDialogTitle>
             <AlertDialogDescription>
-              Você ainda tem <strong>{totalSets - completedSets} séries</strong> para concluir. 
-              Tem certeza que deseja finalizar o treino mesmo assim?
-              <br /><br />
-              O treino será salvo com o progresso atual ({completedSets}/{totalSets} séries) 
-              e contabilizado no seu dashboard.
+              Infelizmente, você ainda não concluiu todas as séries... 😢
+              Tem certeza que deseja finalizar o treino assim mesmo?
+              <br />
+              Seu progresso será salvo incompleto.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

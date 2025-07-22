@@ -407,10 +407,10 @@ const Dashboard = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <div className="w-10 h-10 rounded-2xl flex items-center justify-center mr-3">
-                <PlayFitLogo size="md" className="text-yellow-500" />
+              <div className="w-14 h-14 rounded-2xl flex items-center justify-center mr-1">
+                <PlayFitLogo size="sm" className="text-yellow-500" />
               </div>
-              <h1 className="text-xl font-bold text-gray-900">PlayFit</h1>
+              <h1 className="text-2xl font-bold text-gray-900">PlayFit</h1>
             </div>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-600 hidden md:block">
@@ -430,7 +430,14 @@ const Dashboard = () => {
             <p className="text-lg md:text-xl lg:text-2xl text-gray-700 font-medium flex items-center justify-center flex-wrap">
               <span>Vamos dar um play no treino</span>
               <Typewriter
-                text={user?.user_metadata?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || 'Visitante'}
+                text={(() => {
+                  const fullName = user?.user_metadata?.full_name;
+                  if (fullName) {
+                    const parts = fullName.trim().split(' ');
+                    return parts.slice(0, 2).join(' ');
+                  }
+                  return user?.email?.split('@')[0] || 'Visitante';
+                })()}
                 speed={100}
                 loop={false}
                 showCursor={true}
